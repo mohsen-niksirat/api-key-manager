@@ -1,0 +1,90 @@
+[
+  {
+    "id": "openai",
+    "name": "OpenAI",
+    "logo": "https://openai.com/favicon.ico",
+    "base_url": "https://api.openai.com/v1",
+    "models": ["gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo", "gpt-4-turbo", "o1-preview", "o1-mini"],
+    "website": "https://platform.openai.com"
+  },
+  {
+    "id": "anthropic",
+    "name": "Anthropic",
+    "logo": "https://www.anthropic.com/favicon.ico",
+    "base_url": "https://api.anthropic.com",
+    "models": ["claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022", "claude-3-opus-20240229"],
+    "website": "https://console.anthropic.com"
+  },
+  {
+    "id": "google",
+    "name": "Google AI",
+    "logo": "https://www.google.com/favicon.ico",
+    "base_url": "https://generativelanguage.googleapis.com/v1beta",
+    "models": ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-1.0-pro"],
+    "website": "https://makersuite.google.com"
+  },
+  {
+    "id": "groq",
+    "name": "Groq",
+    "logo": "https://groq.com/favicon.ico",
+    "base_url": "https://api.groq.com/openai/v1",
+    "models": ["llama-3.1-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it", "mixtral-8x7b-32768"],
+    "website": "https://console.groq.com"
+  },
+  {
+    "id": "openrouter",
+    "name": "OpenRouter",
+    "logo": "https://openrouter.ai/favicon.ico",
+    "base_url": "https://openrouter.ai/api/v1",
+    "models": ["anthropic/claude-3-5-sonnet", "meta-llama/llama-3.1-70b", "google/gemini-pro-1.5"],
+    "website": "https://openrouter.ai"
+  },
+  {
+    "id": "deepseek",
+    "name": "DeepSeek",
+    "logo": "https://www.deepseek.com/favicon.ico",
+    "base_url": "https://api.deepseek.com/v1",
+    "models": ["deepseek-chat", "deepseek-code"],
+    "website": "https://platform.deepseek.com"
+  },
+  {
+    "id": "mistral",
+    "name": "Mistral AI",
+    "logo": "https://mistral.ai/favicon.ico",
+    "base_url": "https://api.mistral.ai/v1",
+    "models": ["mistral-large-latest", "mistral-small-latest", "open-mixtral-8x22b"],
+    "website": "https://console.mistral.ai"
+  },
+  {
+    "id": "together",
+    "name": "Together AI",
+    "logo": "https://together.ai/favicon.ico",
+    "base_url": "https://api.together.ai/v1",
+    "models": ["meta-llama-3-70b-chat-hf", "mistralai/Mixtral-8x22B-Instruct", "microsoft/WizardLM-2-7b-chat-hf"],
+    "website": "https://together.ai"
+  },
+  {
+    "id": "fireworks",
+    "name": "Fireworks AI",
+    "logo": "https://www.fireworks.ai/favicon.ico",
+    "base_url": "https://api.fireworks.ai/inference/v1",
+    "models": ["accounts/fireworks/models/llama-v3p1-70b-instruct", "accounts/fireworks/models/kimi-latest"],
+    "website": "https://fireworks.ai"
+  },
+  {
+    "id": "replicate",
+    "name": "Replicate",
+    "logo": "https://replicate.com/favicon.ico",
+    "base_url": "https://api.replicate.com/v1",
+    "models": [],
+    "website": "https://replicate.com"
+  },
+  {
+    "id": "huggingface",
+    "name": "Hugging Face",
+    "logo": "https://huggingface.co/favicon.ico",
+    "base_url": "https://api-inference.huggingface.co",
+    "models": [],
+    "website": "https://huggingface.co"
+  }
+]

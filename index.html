@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+  <title>API Key Manager</title>
+  <meta name="description" content="Securely manage your API keys across services" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0f172a" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Source+Code+Pro:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body class="theme-dark">
+  <div id="modalEncrypt" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>🔒 Encryption</h3>
+        <button class="modal-close" onclick="app.closeModal('modalEncrypt')">&times;</button>
+      </div>
+      <div id="encryptStatus" class="encrypt-status"></div>
+      <form id="formEncryptSetup" onsubmit="event.preventDefault(); app.setupEncryption()">
+        <div class="form-group">
+          <label>Master password *</label>
+          <input type="password" name="password" minlength="8" placeholder="Min 8 characters" required autocomplete="new-password" />
+        </div>
+        <div class="form-group">
+          <label>Confirm password *</label>
+          <input type="password" name="confirm" minlength="8" placeholder="Repeat password" required autocomplete="new-password" />
+        </div>
+        <p class="form-hint warning">⚠️ If you forget this password, encrypted keys cannot be recovered. There is no reset.</p>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalEncrypt')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Enable encryption</button>
+        </div>
+      </form>
+      <form id="formEncryptUnlock" onsubmit="event.preventDefault(); app.unlockEncryption()" hidden>
+        <div class="form-group">
+          <label>Master password</label>
+          <input type="password" name="password" placeholder="Master password" required autocomplete="current-password" />
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalEncrypt')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Unlock</button>
+        </div>
+      </div>
+      </form>
+      <div class="form-actions" id="encryptActions" hidden>
+        <button class="btn btn-secondary btn-sm" onclick="app.closeModal('modalEncrypt')">Close</button>
+        <button class="btn btn-danger btn-sm" onclick="app.disableEncryption()">Disable encryption</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-container">
+    <!-- Header / Top Bar -->
+    <header class="top-bar">
+      <div class="logo">
+        <span class="logo-icon">🗝️</span>
+        <span class="logo-text">API Key Manager</span>
+      </div>
+      <div class="top-bar-actions">
+        <div class="search-container">
+          <span class="search-icon">🔍</span>
+          <input type="search" id="globalSearch" placeholder="Search keys or providers..." enterkeyhint="search" autocomplete="off" />
+          <button id="btnClearSearch" class="search-clear" title="Clear search" aria-label="Clear search" hidden>×</button>
+        </div>
+        <button id="themeToggle" class="icon-button" title="Toggle theme">🌓</button>
+        <button id="btnDownload" class="icon-button" title="Download JSON">💾</button>
+        <button id="btnImport" class="icon-button" title="Import backup">📥</button>
+        <button id="btnExport" class="icon-button" title="Export JSON">📋</button>
+        <button id="btnSettings" class="icon-button" title="Settings">⚙️</button>
+        <input type="file" id="importFile" accept=".json" style="display: none;" />
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="providers-header">
+        <h2>Your API Providers</h2>
+        <div class="providers-header-actions">
+          <button id="btnBrowseDirectory" class="btn btn-secondary">🧭 Browse directory</button>
+          <button id="btnAddProvider" class="btn btn-primary">+ Add Provider</button>
+        </div>
+      </div>
+      <div id="providersContainer" class="providers-grid">
+        <div class="loading-state">Loading...</div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>API Key Manager • Made with ❤️ by  <a href="https://github.com/mohsen-niksirat">mohsen-niksirat</a> — <a href="https://github.com/mohsen-niksirat/API-Key-Manager">GitHub</a> • MIT License</p>
+      <p>All data stays locally in your browser — nothing is sent to any server.</p>
+    </footer>
+  </div>
+
+  <!-- Modal: Add Provider -->
+  <div id="modalAddProvider" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Add Provider</h3>
+        <button class="modal-close" onclick="app.closeModal('modalAddProvider')">&times;</button>
+      </div>
+      <form onsubmit="event.preventDefault(); app.saveProvider()">
+        <div class="form-group">
+          <label>Provider Name *</label>
+          <input type="text" name="name" placeholder="e.g., My Custom API" required />
+        </div>
+        <div class="form-group">
+          <label>Base URL *</label>
+          <input type="url" name="base_url" placeholder="https://api.example.com/v1" required />
+        </div>
+        <div class="form-group">
+          <label>Models (comma-separated)</label>
+          <input type="text" name="models" placeholder="gpt-4, gpt-3.5-turbo, ..." />
+        </div>
+        <div class="form-group">
+          <label>Website</label>
+          <input type="url" name="website" placeholder="https://example.com" />
+        </div>
+        <div class="form-group">
+          <label>Logo URL</label>
+          <input type="url" name="logo" placeholder="https://example.com/logo.png" />
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalAddProvider')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Provider</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add Key -->
+  <div id="modalAddKey" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Add API Key</h3>
+        <button class="modal-close" onclick="app.closeModal('modalAddKey')">&times;</button>
+      </div>
+      <form onsubmit="event.preventDefault(); app.saveKey()">
+        <div class="form-group">
+          <label>Key Name *</label>
+          <input type="text" name="name" placeholder="Production, Testing, etc." required />
+        </div>
+        <div class="form-group">
+          <label>API Key *</label>
+          <input type="password" name="key" placeholder="sk-..." required />
+        </div>
+        <div class="form-group">
+          <label>Expiry Date</label>
+          <input type="date" name="expiry" />
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalAddKey')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Key</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Provider Detail / Edit -->
+  <div id="modalProviderDetail" class="modal modal-large">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Provider Details</h3>
+        <span class="edit-mode-toggle" id="editModeToggle" onclick="app.toggleEditMode()">✏️ Edit</span>
+        <button class="modal-close" onclick="app.closeModal('modalProviderDetail')">&times;</button>
+      </div>
+      <div class="modal-body">
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Export -->
+  <div id="modalExport" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Export Data</h3>
+        <button class="modal-close" onclick="app.closeModal('modalExport')">&times;</button>
+      </div>
+      <div class="form-group">
+        <label>Exported JSON</label>
+        <textarea readonly rows="10" id="exportTextarea"></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="app.closeModal('modalExport')">Close</button>
+        <button class="btn btn-primary" onclick="app.copyExport()">Copy to clipboard</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Provider Directory -->
+  <div id="modalDirectory" class="modal modal-large">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>🧭 Provider Directory</h3>
+        <button class="modal-close" onclick="app.closeModal('modalDirectory')">&times;</button>
+      </div>
+      <div class="form-group directory-search">
+        <input type="search" id="directorySearch" placeholder="Filter directory..." autocomplete="off" />
+      </div>
+      <div id="directoryList" class="directory-list">
+        <div class="loading-state">Loading directory...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Edit Provider -->
+  <div id="modalEditProvider" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Edit Provider</h3>
+        <button class="modal-close" onclick="app.closeModal('modalEditProvider')">&times;</button>
+      </div>
+      <form onsubmit="event.preventDefault(); app.saveProviderEdits()">
+        <div class="form-group">
+          <label>Provider Name *</label>
+          <input type="text" name="name" required />
+        </div>
+        <div class="form-group">
+          <label>Base URL *</label>
+          <input type="url" name="base_url" required />
+        </div>
+        <div class="form-group">
+          <label>Models (comma-separated)</label>
+          <input type="text" name="models" />
+        </div>
+        <div class="form-group">
+          <label>Website</label>
+          <input type="url" name="website" />
+        </div>
+        <div class="form-group">
+          <label>Logo URL</label>
+          <input type="url" name="logo" />
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalEditProvider')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Settings -->
+  <div id="modalSettings" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Settings</h3>
+        <button class="modal-close" onclick="app.closeModal('modalSettings')">&times;</button>
+      </div>
+      <form onsubmit="event.preventDefault(); app.saveSettings()">
+        <div class="form-group">
+          <label>Theme</label>
+          <select id="themeSelect">
+            <option value="theme-dark">Dark</option>
+            <option value="theme-light">Light</option>
+            <option value="theme-system">System</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="autoSave" checked />
+            <span>Auto-save on changes</span>
+          </label>
+        </div>
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="encryptToggle" onclick="app.toggleEncryptFromSettings(this)" />
+            <span>🔒 Encrypt API keys (master password)</span>
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalSettings')">Close</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/storage.js" type="module"></script>
+  <script src="js/providers.js" type="module"></script>
+  <script src="js/app.js" type="module"></script>
+</body>
+</html>

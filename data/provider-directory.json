@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "updated": "2026-09-24",
+  "providers": [
+    { "id": "openai", "name": "OpenAI", "base_url": "https://api.openai.com/v1", "website": "https://platform.openai.com", "category": "OpenAI", "logo": "https://openai.com/favicon.ico", "docs": "https://platform.openai.com/docs" },
+    { "id": "anthropic", "name": "Anthropic", "base_url": "https://api.anthropic.com", "website": "https://console.anthropic.com", "category": "Anthropic", "logo": "https://www.anthropic.com/favicon.ico", "docs": "https://docs.anthropic.com" },
+    { "id": "google", "name": "Google AI", "base_url": "https://generativelanguage.googleapis.com/v1beta", "website": "https://makersuite.google.com", "category": "Google", "logo": "https://www.google.com/favicon.ico", "docs": "https://ai.google.dev/docs" },
+    { "id": "groq", "name": "Groq", "base_url": "https://api.groq.com/openai/v1", "website": "https://console.groq.com", "category": "AI Lab", "logo": "https://groq.com/favicon.ico", "docs": "https://console.groq.com/docs" },
+    { "id": "deepseek", "name": "DeepSeek", "base_url": "https://api.deepseek.com/v1", "website": "https://platform.deepseek.com", "category": "China", "logo": "https://www.deepseek.com/favicon.ico", "docs": "https://platform.deepseek.com/docs" },
+    { "id": "mistral", "name": "Mistral AI", "base_url": "https://api.mistral.ai/v1", "website": "https://console.mistral.ai", "category": "Europe", "logo": "https://mistral.ai/favicon.ico", "docs": "https://docs.mistral.ai" },
+    { "id": "openrouter", "name": "OpenRouter", "base_url": "https://openrouter.ai/api/v1", "website": "https://openrouter.ai", "category": "Router", "logo": "https://openrouter.ai/favicon.ico", "docs": "https://openrouter.ai/docs" },
+    { "id": "together", "name": "Together AI", "base_url": "https://api.together.ai/v1", "website": "https://together.ai", "category": "Infra", "logo": "https://together.ai/favicon.ico", "docs": "https://docs.together.ai" },
+    { "id": "fireworks", "name": "Fireworks AI", "base_url": "https://api.fireworks.ai/inference/v1", "website": "https://fireworks.ai", "category": "Infra", "logo": "https://www.fireworks.ai/favicon.ico", "docs": "https://docs.fireworks.ai" },
+    { "id": "replicate", "name": "Replicate", "base_url": "https://api.replicate.com/v1", "website": "https://replicate.com", "category": "Infra", "logo": "https://replicate.com/favicon.ico", "docs": "https://replicate.com/docs" },
+    { "id": "huggingface", "name": "Hugging Face", "base_url": "https://api-inference.huggingface.co", "website": "https://huggingface.co", "category": "OSS", "logo": "https://huggingface.co/favicon.ico", "docs": "https://huggingface.co/docs/api-inference" },
+    { "id": "cohere", "name": "Cohere", "base_url": "https://api.cohere.ai/v1", "website": "https://cohere.com", "category": "Enterprise", "logo": "https://cohere.com/favicon.ico", "docs": "https://docs.cohere.com" },
+    { "id": "perplexity", "name": "Perplexity AI", "base_url": "https://api.perplexity.ai", "website": "https://perplexity.ai", "category": "AI Lab", "logo": "https://perplexity.ai/favicon.ico", "docs": "https://docs.perplexity.ai" },
+    { "id": "xai", "name": "xAI (Grok)", "base_url": "https://api.x.ai/v1", "website": "https://x.ai", "category": "AI Lab", "logo": "https://x.ai/favicon.ico", "docs": "https://docs.x.ai" },
+    { "id": "ai21", "name": "AI21 Labs", "base_url": "https://api.ai21.com/studio/v1", "website": "https://ai21.com", "category": "AI Lab", "logo": "https://ai21.com/favicon.ico", "docs": "https://docs.ai21.com" },
+    { "id": "novita", "name": "Novita AI", "base_url": "https://api.novita.ai/v3", "website": "https://novita.ai", "category": "Infra", "logo": "https://novita.ai/favicon.ico", "docs": "https://novita.ai/docs" },
+    { "id": "deepinfra", "name": "DeepInfra", "base_url": "https://api.deepinfra.com/v1/openai", "website": "https://deepinfra.com", "category": "Infra", "logo": "https://deepinfra.com/favicon.ico", "docs": "https://deepinfra.com/docs" },
+    { "id": "lepton", "name": "Lepton AI", "base_url": "https://api.lepton.run/api/v1", "website": "https://lepton.ai", "category": "Infra", "logo": "", "docs": "https://lepton.ai/docs" },
+    { "id": "zhipu", "name": "Zhipu AI (GLM)", "base_url": "https://open.bigmodel.cn/api/paas/v4", "website": "https://bigmodel.cn", "category": "China", "logo": "", "docs": "https://open.bigmodel.cn/dev/api" },
+    { "id": "baidu", "name": "Baidu (ERNIE)", "base_url": "https://aip.baidubce.com", "website": "https://cloud.baidu.com", "category": "China", "logo": "", "docs": "https://cloud.baidu.com/doc" },
+    { "id": "siliconflow", "name": "SiliconFlow", "base_url": "https://api.siliconflow.cn/v1", "website": "https://siliconflow.cn", "category": "China", "logo": "", "docs": "https://docs.siliconflow.cn" },
+    { "id": "nlpcloud", "name": "NLPCloud", "base_url": "https://api.nlpcloud.io/v1", "website": "https://nlpcloud.io", "category": "Europe", "logo": "", "docs": "https://docs.nlpcloud.io" },
+    { "id": "llama-api", "name": "Llama API (Meta)", "base_url": "https://api.llama.com/v1", "website": "https://llama.com", "category": "AI Lab", "logo": "", "docs": "https://llama.developer.meta.com/docs" },
+    { "id": "cerebras", "name": "Cerebras", "base_url": "https://api.cerebras.ai/v1", "website": "https://cerebras.ai", "category": "Infra", "logo": "", "docs": "https://inference-docs.cerebras.ai" },
+    { "id": "sambanova", "name": "SambaNova", "base_url": "https://api.sambanova.ai/v1", "website": "https://sambanova.ai", "category": "Infra", "logo": "", "docs": "https://docs.sambanova.ai" }
+  ]
+}

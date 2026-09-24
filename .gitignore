@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+npm-debug.log
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Freebuff workspace metadata
+.freebuff/
