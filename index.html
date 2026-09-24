@@ -12,6 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Source+Code+Pro:wght@400;500&family=Vazirmatn:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body class="theme-dark">
+  <div class="aurora" aria-hidden="true"><div class="aurora-3"></div></div>
   <div id="modalEncrypt" class="modal">
     <div class="modal-content">
       <div class="modal-header">
@@ -82,9 +83,25 @@
       <div class="providers-header">
         <h2 data-i18n="yourProviders">Your API Providers</h2>
         <div class="providers-header-actions">
+          <button id="btnTrash" class="btn btn-ghost" title="Recycle bin">🗑️</button>
           <button id="btnBrowseDirectory" class="btn btn-secondary" data-i18n="browseDirectory">🧭 Browse directory</button>
           <button id="btnAddProvider" class="btn btn-primary" data-i18n="addProvider">+ Add Provider</button>
         </div>
+      </div>
+      <div class="filter-bar">
+        <div class="filter-chips" id="filterChips">
+          <button class="chip active" data-filter="all" data-i18n="filterAll">All</button>
+          <button class="chip" data-filter="pinned">📌 <span data-i18n="filterPinned">Pinned</span></button>
+          <button class="chip" data-filter="withKeys" data-i18n="filterWithKeys">With keys</button>
+          <button class="chip" data-filter="noKeys" data-i18n="filterNoKeys">No keys</button>
+          <button class="chip" data-filter="custom" data-i18n="filterCustom">Custom</button>
+        </div>
+        <select id="sortSelect" class="sort-select">
+          <option value="pinned" data-i18n="sortPinned">Pinned first</option>
+          <option value="name" data-i18n="sortName">Name A→Z</option>
+          <option value="keys" data-i18n="sortKeys">Most keys</option>
+          <option value="newest" data-i18n="sortNewest">Newest</option>
+        </select>
       </div>
       <div id="providersContainer" class="providers-grid">
         <div class="loading-state" data-i18n="loading">Loading...</div>
@@ -274,6 +291,32 @@
           <button type="submit" class="btn btn-primary" data-i18n="saveChanges">Save Changes</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal: Recycle Bin -->
+  <div id="modalTrash" class="modal modal-large">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>🗑️ <span data-i18n="trashTitle">Recycle Bin</span></h3>
+        <button class="modal-close" onclick="app.closeModal('modalTrash')">&times;</button>
+      </div>
+      <div id="trashList" class="trash-list"></div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="app.closeModal('modalTrash')" data-i18n="close">Close</button>
+        <button class="btn btn-danger" onclick="app.emptyTrash()" data-i18n="emptyTrash">Empty bin</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Key Tester -->
+  <div id="modalKeyTest" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>🧪 <span data-i18n="keyTestTitle">Test API Keys</span></h3>
+        <button class="modal-close" onclick="app.closeModal('modalKeyTest')">&times;</button>
+      </div>
+      <div id="keyTestBody" class="keytest-body"></div>
     </div>
   </div>
 

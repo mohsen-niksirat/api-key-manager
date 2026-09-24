@@ -1,4 +1,4 @@
-const CACHE_NAME = 'api-key-manager-v4';
+const CACHE_NAME = 'api-key-manager-v5';
 
 // Relative paths so the app works under a subpath (e.g. GitHub Pages project sites)
 const STATIC_ASSETS = [
@@ -9,6 +9,8 @@ const STATIC_ASSETS = [
   './js/storage.js',
   './js/providers.js',
   './js/crypto.js',
+  './js/i18n.js',
+  './js/keytester.js',
   './data/default-providers.json',
   './data/provider-directory.json',
   './manifest.json'

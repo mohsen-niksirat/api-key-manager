@@ -10,6 +10,7 @@ import {
   verifyPassword
 } from './crypto.js';
 import { I18n } from './i18n.js';
+import { testKey, testAllKeys } from './keytester.js';
 
 const BACKUP_PREFIX = 'AKM-ENCRYPTED-BACKUP:v1:';
 
@@ -24,6 +25,8 @@ class App {
     this.i18n = new I18n(I18n.detectLang());
     this.visibleKeys = new Set(); // key ids currently revealed via eye toggle
     this.pendingEncryptedImport = null;
+    this.listFilter = 'all';
+    this.listSort = 'pinned';
   }
 
   /** Translate helper bound to the current language. */
@@ -65,6 +68,18 @@ class App {
     document.getElementById('directorySearch')?.addEventListener('input', (e) => this.renderDirectory(e.target.value));
     document.getElementById('langSelect')?.addEventListener('change', (e) => this.changeLanguage(e.target.value));
     document.getElementById('langSelectSettings')?.addEventListener('change', (e) => this.changeLanguage(e.target.value));
+    document.getElementById('btnTrash')?.addEventListener('click', () => this.openTrash());
+    document.getElementById('sortSelect')?.addEventListener('change', (e) => {
+      this.listSort = e.target.value;
+      this.loadProviders();
+    });
+    document.getElementById('filterChips')?.addEventListener('click', (e) => {
+      const chip = e.target.closest('.chip');
+      if (!chip) return;
+      this.listFilter = chip.dataset.filter;
+      document.querySelectorAll('#filterChips .chip').forEach(c => c.classList.toggle('active', c === chip));
+      this.loadProviders();
+    });
 
     // Close modals via backdrop click
     document.querySelectorAll('.modal').forEach(modal => {
@@ -102,7 +117,12 @@ class App {
   }
 
   async loadProviders() {
-    const providers = await this.providerManager.getAllProviders(true);
+    const query = document.getElementById('globalSearch')?.value || '';
+    const providers = await this.providerManager.listProviders({
+      query,
+      filter: this.listFilter,
+      sort: this.listSort
+    });
     this.renderProviders(providers);
   }
 
@@ -149,15 +169,27 @@ class App {
         </div>`;
     }
 
+    const models = provider.models || [];
+    const modelChips = models.length
+      ? `<div class="card-models">${models.slice(0, 3).map(m =>
+          `<span class="model-chip" data-stop onclick="app.copyToClipboard('${escapeHtml(m).replace(/'/g, '&#39;')}')" title="${escapeHtml(this.t('toastCopied'))}">${escapeHtml(m)}</span>`
+        ).join('')}${models.length > 3 ? `<span class="model-chip more">+${models.length - 3}</span>` : ''}</div>`
+      : '';
+
+    const pinBtn = `<button class="pin-btn ${provider.pinned ? 'pinned' : ''}" data-stop
+      onclick="app.togglePin('${safeId}')" title="${escapeHtml(provider.pinned ? this.t('unpin') : this.t('pin'))}">${provider.pinned ? '📌' : '📍'}</button>`;
+
     return `
-      <div class="provider-card" data-provider="${safeId}">
+      <div class="provider-card ${provider.pinned ? 'is-pinned' : ''}" data-provider="${safeId}">
         <div class="provider-header">
           ${getProviderIcon(provider)}
           <div class="provider-info">
-            <h3>${name}</h3>
-            <span class="provider-base-url">${baseUrl}</span>
+            <h3>${name} ${provider.pinned ? '<span class="pin-flag">📌</span>' : ''}</h3>
+            <span class="provider-base-url" data-stop onclick="app.copyToClipboard('${baseUrl.replace(/'/g, '&#39;')}')" title="${escapeHtml(this.t('copyBaseUrl'))}">${baseUrl} 📋</span>
           </div>
+          ${pinBtn}
         </div>
+        ${modelChips}
         ${body}
       </div>
     `;
@@ -235,6 +267,7 @@ class App {
           </div>
           <div class="key-status" style="background: ${statusColor}20; color: ${statusColor}">${escapeHtml(k.status || 'active')}</div>
           ${eyeBtn}
+          <button class="icon-btn" onclick="app.testSingleKey(${Number(k.id)})" title="${escapeHtml(this.t('testThisKey'))}">🧪</button>
           <button class="icon-btn" onclick="app.copyKey(${Number(k.id)})" title="${escapeHtml(this.t('copyKey'))}">📋</button>
           <button class="icon-btn danger" onclick="app.deleteKey(${Number(k.id)})" title="${escapeHtml(this.t('deleteKey'))}">🗑️</button>
         </div>
@@ -273,6 +306,7 @@ class App {
           <div class="keys-header">
             <h3>${escapeHtml(this.t('apiKeys'))} (${keys.length})</h3>
             <div>
+              ${keys.length > 0 ? `<button class="btn btn-secondary btn-sm" onclick="app.openKeyTester('${safeId}')">${escapeHtml(this.t('testAllKeys'))}</button>` : ''}
               <button class="btn btn-primary btn-sm" onclick="app.addKeyToProvider('${safeId}')">
                 ${escapeHtml(this.t('addKey'))}
               </button>
@@ -432,9 +466,9 @@ class App {
 
   async deleteKey(id) {
     if (!confirm(this.t('confirmDeleteKey'))) return;
-    await this.providerManager.deleteAPIKey(id);
+    await this.providerManager.softDeleteAPIKey(id);
     this.visibleKeys.delete(Number(id));
-    this.showToast(this.t('toastKeyDeleted'));
+    this.showToast(this.t('toastTrashed'));
     if (this.activeProvider) {
       this.viewProvider(this.activeProvider.id);
     }
@@ -445,10 +479,186 @@ class App {
     const provider = await this.providerManager.getProvider(id);
     if (!confirm(this.t('confirmDeleteProvider', { name: provider?.name || '' }))) return;
 
-    await this.providerManager.deleteProvider(id);
+    await this.providerManager.softDeleteProvider(id);
     this.closeModal('modalProviderDetail');
     this.loadProviders();
-    this.showToast(this.t('toastProviderDeleted'));
+    this.showToast(this.t('toastTrashed'));
+  }
+
+  // ---------- Pin ----------
+
+  async togglePin(id) {
+    const pinned = await this.providerManager.togglePin(id);
+    this.showToast(pinned ? this.t('pinned') : this.t('unpin'));
+    this.loadProviders();
+  }
+
+  // ---------- Recycle bin ----------
+
+  async openTrash() {
+    this.openModal('modalTrash');
+    await this.renderTrash();
+  }
+
+  async renderTrash() {
+    const list = document.getElementById('trashList');
+    if (!list) return;
+
+    const { providers, keys } = await this.providerManager.getTrash();
+    if (!providers.length && !keys.length) {
+      list.innerHTML = `<div class="empty-state">${escapeHtml(this.t('trashEmpty'))}</div>`;
+      return;
+    }
+
+    const providerSection = providers.length ? `
+      <h4 class="trash-section-title">${escapeHtml(this.t('deletedProviders'))} (${providers.length})</h4>
+      ${providers.map(p => `
+        <div class="trash-item">
+          ${getProviderIcon(p)}
+          <div class="trash-info">
+            <div class="trash-name">${escapeHtml(p.name || p.id)}</div>
+            <div class="trash-date">${p.deleted_at ? new Date(p.deleted_at).toLocaleString() : ''}</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="app.restoreProvider('${escapeHtml(p.id)}')">♻️ ${escapeHtml(this.t('restore'))}</button>
+          <button class="btn btn-danger btn-sm" onclick="app.purgeProvider('${escapeHtml(p.id)}')">${escapeHtml(this.t('deleteKey'))}</button>
+        </div>
+      `).join('')}` : '';
+
+    const keysSection = keys.length ? `
+      <h4 class="trash-section-title">${escapeHtml(this.t('deletedKeys'))} (${keys.length})</h4>
+      ${keys.map(k => `
+        <div class="trash-item">
+          <div class="provider-icon-placeholder">🔑</div>
+          <div class="trash-info">
+            <div class="trash-name">${escapeHtml(k.name || this.t('unnamedKey'))}</div>
+            <div class="trash-date">${k.deleted_at ? new Date(k.deleted_at).toLocaleString() : ''}</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="app.restoreKey(${Number(k.id)})">♻️ ${escapeHtml(this.t('restore'))}</button>
+          <button class="btn btn-danger btn-sm" onclick="app.purgeKey(${Number(k.id)})">${escapeHtml(this.t('deleteKey'))}</button>
+        </div>
+      `).join('')}` : '';
+
+    list.innerHTML = providerSection + keysSection;
+  }
+
+  async restoreProvider(id) {
+    await this.providerManager.restoreProvider(id);
+    this.showToast(this.t('toastRestored'));
+    this.loadProviders();
+    this.renderTrash();
+  }
+
+  async restoreKey(id) {
+    await this.providerManager.restoreAPIKey(id);
+    this.showToast(this.t('toastRestored'));
+    this.loadProviders();
+    this.renderTrash();
+  }
+
+  async purgeProvider(id) {
+    const provider = await this.providerManager.getProvider(id);
+    if (!confirm(this.t('confirmPurge', { name: provider?.name || id }))) return;
+    await this.providerManager.purgeProvider(id);
+    this.renderTrash();
+    this.loadProviders();
+  }
+
+  async purgeKey(id) {
+    await this.providerManager.purgeAPIKey(id);
+    this.renderTrash();
+    this.loadProviders();
+  }
+
+  async emptyTrash() {
+    if (!confirm(this.t('confirmEmptyTrash'))) return;
+    await this.providerManager.emptyTrash();
+    this.showToast(this.t('toastEmptied'));
+    this.renderTrash();
+    this.loadProviders();
+  }
+
+  // ---------- Key tester ----------
+
+  async openKeyTester(providerId) {
+    const provider = await this.providerManager.getProvider(providerId);
+    if (!provider) return;
+    const keys = await this.providerManager.getAPIKeys(providerId);
+    if (!keys.length) return;
+
+    const body = document.getElementById('keyTestBody');
+    const modelOptions = (provider.models || []).map(m =>
+      `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('');
+
+    body.innerHTML = `
+      <div class="keytest-provider">${getProviderIcon(provider)} <strong>${escapeHtml(provider.name)}</strong></div>
+      <div class="form-group keytest-controls">
+        <label>${escapeHtml(this.t('testModel'))}</label>
+        <select id="keyTestModel">
+          <option value="">—</option>
+          ${modelOptions}
+        </select>
+      </div>
+      <div class="keytest-actions">
+        <button class="btn btn-primary" onclick="app.runBulkKeyTest('${escapeHtml(providerId)}')">${escapeHtml(this.t('testAll'))} (${keys.length})</button>
+      </div>
+      <div id="keyTestResults" class="keytest-results">
+        <p class="form-hint">${escapeHtml(this.t('corsHint'))}</p>
+      </div>
+    `;
+    this.openModal('modalKeyTest');
+  }
+
+  async testSingleKey(keyId) {
+    const key = await this.providerManager.getAPIKeyById(keyId);
+    if (!key) return;
+    const provider = await this.providerManager.getProvider(key.provider_id);
+    if (!provider) return;
+
+    // Ensure the test modal is visible with a spinner row for this key
+    await this.openKeyTester(key.provider_id);
+    const results = document.getElementById('keyTestResults');
+    results.innerHTML = `
+      <div class="keytest-row testing-row" id="singleTestRow">
+        <span class="keytest-name">${escapeHtml(key.name || this.t('unnamedKey'))}</span>
+        <span class="keytest-status pending">⏳ ${escapeHtml(this.t('testing'))}</span>
+      </div>`;
+
+    const result = await testKey(provider, key);
+    const row = document.getElementById('singleTestRow');
+    if (row) {
+      row.className = `keytest-row ${result.ok ? 'pass' : 'fail'}`;
+      row.innerHTML = `
+        <span class="keytest-name">${escapeHtml(key.name || this.t('unnamedKey'))}</span>
+        <span class="keytest-status ${result.ok ? 'pass' : 'fail'}">${result.ok ? '✅' : '❌'} ${escapeHtml(result.detail)} <small>${result.ms}ms</small></span>`;
+    }
+  }
+
+  async runBulkKeyTest(providerId) {
+    const provider = await this.providerManager.getProvider(providerId);
+    if (!provider) return;
+    const keys = await this.providerManager.getAPIKeys(providerId);
+    if (!keys.length) return;
+
+    const model = document.getElementById('keyTestModel')?.value || undefined;
+    const results = document.getElementById('keyTestResults');
+
+    results.innerHTML = keys.map(k => `
+      <div class="keytest-row testing-row" id="test-row-${Number(k.id)}">
+        <span class="keytest-name">${escapeHtml(k.name || this.t('unnamedKey'))}</span>
+        <span class="keytest-status pending">⏳ ${escapeHtml(this.t('testing'))}</span>
+      </div>`).join('');
+
+    await testAllKeys(provider, keys, {
+      model,
+      onProgress: (done, total, r) => {
+        const row = document.getElementById(`test-row-${Number(r.keyId)}`);
+        if (!row) return;
+        row.className = `keytest-row ${r.ok ? 'pass' : 'fail'}`;
+        row.innerHTML = `
+          <span class="keytest-name">${escapeHtml(r.keyName || this.t('unnamedKey'))}</span>
+          <span class="keytest-status ${r.ok ? 'pass' : 'fail'}">${r.ok ? '✅' : '❌'} ${escapeHtml(r.detail)} <small>${r.ms}ms</small></span>`;
+      }
+    });
   }
 
   async saveProvider() {

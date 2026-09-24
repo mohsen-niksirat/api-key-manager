@@ -4,7 +4,7 @@ export class APIKeyStorage {
   constructor() {
     this.db = null;
     this.dbName = 'APIKeyManager';
-    this.version = 1;
+    this.version = 2; // v2: soft-delete flags for recycle bin
   }
 
   async init() {
@@ -25,7 +25,7 @@ export class APIKeyStorage {
         const db = event.target.result;
 
         if (!db.objectStoreNames.contains('providers')) {
-          const providerStore = db.createObjectStore('providers', { keyPath: 'id' });
+          db.createObjectStore('providers', { keyPath: 'id' });
         }
 
         if (!db.objectStoreNames.contains('api_keys')) {
@@ -106,6 +106,146 @@ export class APIKeyStorage {
     });
   }
 
+  // ---------- Soft delete (recycle bin) ----------
+
+  async softDeleteProvider(id) {
+    const tx = this.db.transaction(['providers', 'api_keys'], 'readwrite');
+    const now = new Date().toISOString();
+    const providerStore = tx.objectStore('providers');
+    const getReq = providerStore.get(id);
+    getReq.onsuccess = () => {
+      if (getReq.result) {
+        providerStore.put({ ...getReq.result, deleted: true, deleted_at: now });
+      }
+    };
+
+    const keyStore = tx.objectStore('api_keys');
+    const index = keyStore.index('provider_id');
+    const cursorReq = index.openCursor(IDBKeyRange.only(id));
+    cursorReq.onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (cursor) {
+        const k = cursor.value;
+        cursor.update({ ...k, deleted: true, deleted_at: now });
+        cursor.continue();
+      }
+    };
+
+    return new Promise((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async softDeleteAPIKey(id) {
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction('api_keys', 'readwrite');
+      const store = tx.objectStore('api_keys');
+      const getReq = store.get(Number(id));
+      getReq.onsuccess = () => {
+        if (getReq.result) {
+          store.put({ ...getReq.result, deleted: true, deleted_at: new Date().toISOString() });
+        }
+      };
+      getReq.onerror = () => reject(getReq.error);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async restoreProvider(id) {
+    // Restore the provider and any keys deleted at the same moment (cascade)
+    const provider = await this.getProvider(id);
+    if (!provider) return;
+
+    const deletedAt = provider.deleted_at;
+    const tx = this.db.transaction(['providers', 'api_keys'], 'readwrite');
+    tx.objectStore('providers').put({ ...provider, deleted: false, deleted_at: null });
+
+    const keyStore = tx.objectStore('api_keys');
+    const index = keyStore.index('provider_id');
+    const cursorReq = index.openCursor(IDBKeyRange.only(id));
+    cursorReq.onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (cursor) {
+        const k = cursor.value;
+        if (k.deleted && (!deletedAt || k.deleted_at === deletedAt)) {
+          cursor.update({ ...k, deleted: false, deleted_at: null });
+        }
+        cursor.continue();
+      }
+    };
+
+    return new Promise((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async restoreAPIKey(id) {
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction('api_keys', 'readwrite');
+      const store = tx.objectStore('api_keys');
+      const getReq = store.get(Number(id));
+      getReq.onsuccess = () => {
+        if (getReq.result) {
+          store.put({ ...getReq.result, deleted: false, deleted_at: null });
+        }
+      };
+      getReq.onerror = () => reject(getReq.error);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async purgeProvider(id) {
+    return await this.deleteProvider(id);
+  }
+
+  async purgeAPIKey(id) {
+    return await this.deleteAPIKey(id);
+  }
+
+  async getTrashedProviders() {
+    const all = await this.getProviders();
+    return all.filter(p => p.deleted);
+  }
+
+  async getTrashedAPIKeys() {
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction('api_keys', 'readonly');
+      const req = tx.objectStore('api_keys').getAll();
+      req.onsuccess = () => resolve((req.result || []).filter(k => k.deleted));
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async emptyTrash() {
+    const tx = this.db.transaction(['providers', 'api_keys'], 'readwrite');
+    const providerStore = tx.objectStore('providers');
+    const keyStore = tx.objectStore('api_keys');
+
+    const pReq = providerStore.getAll();
+    pReq.onsuccess = () => {
+      (pReq.result || []).forEach(p => {
+        if (p.deleted) providerStore.delete(p.id);
+      });
+    };
+    const kReq = keyStore.getAll();
+    kReq.onsuccess = () => {
+      (kReq.result || []).forEach(k => {
+        if (k.deleted) keyStore.delete(k.id);
+      });
+    };
+
+    return new Promise((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  // ---------- Keys ----------
+
   async addAPIKey(keyData) {
     return new Promise((resolve, reject) => {
       const tx = this.db.transaction('api_keys', 'readwrite');
@@ -129,7 +269,7 @@ export class APIKeyStorage {
       } else {
         req = store.getAll();
       }
-      req.onsuccess = () => resolve(req.result || []);
+      req.onsuccess = () => resolve((req.result || []).filter(k => !k.deleted));
       req.onerror = () => reject(req.error);
     });
   }
@@ -139,15 +279,6 @@ export class APIKeyStorage {
       const tx = this.db.transaction('api_keys', 'readonly');
       const req = tx.objectStore('api_keys').get(Number(id));
       req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  async deleteAPIKey(id) {
-    return new Promise((resolve, reject) => {
-      const tx = this.db.transaction('api_keys', 'readwrite');
-      const req = tx.objectStore('api_keys').delete(Number(id));
-      req.onsuccess = () => resolve();
       req.onerror = () => reject(req.error);
     });
   }
@@ -166,6 +297,15 @@ export class APIKeyStorage {
       getReq.onerror = () => reject(getReq.error);
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async deleteAPIKey(id) {
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction('api_keys', 'readwrite');
+      const req = tx.objectStore('api_keys').delete(Number(id));
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
     });
   }
 

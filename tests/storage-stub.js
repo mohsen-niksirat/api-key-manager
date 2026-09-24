@@ -20,7 +20,7 @@ export function createStorageStub() {
       }
       providers.push({ ...p });
     },
-    async getProviders() { return providers.map(p => ({ ...p })); },
+    async getProviders() { return providers.filter(p => !p.deleted).map(p => ({ ...p })); },
     async getProvider(id) { return providers.find(p => p.id === id) || null; },
     async updateProvider(id, data) {
       const i = providers.findIndex(p => p.id === id);
@@ -40,7 +40,7 @@ export function createStorageStub() {
     },
     async getAPIKeys(providerId) {
       return keys
-        .filter(k => !providerId || k.provider_id === providerId)
+        .filter(k => !k.deleted && (!providerId || k.provider_id === providerId))
         .map(k => ({ ...k }));
     },
     async getAPIKey(id) { return keys.find(k => k.id === Number(id)) || null; },

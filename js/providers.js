@@ -104,7 +104,8 @@ export class ProviderManager {
   }
 
   async getAllProviders(withKeys = false) {
-    let providers = await this.storage.getProviders();
+    // Soft-deleted providers live in the trash: hidden from every normal view.
+    let providers = (await this.storage.getProviders()).filter(p => !p.deleted);
 
     if (withKeys) {
       const keys = await this.storage.getAPIKeys();
@@ -149,6 +150,50 @@ export class ProviderManager {
 
   async deleteProvider(id) {
     await this.storage.deleteProvider(id);
+  }
+
+  async softDeleteProvider(id) {
+    await this.storage.softDeleteProvider(id);
+  }
+
+  async restoreProvider(id) {
+    await this.storage.restoreProvider(id);
+  }
+
+  async purgeProvider(id) {
+    await this.storage.purgeProvider(id);
+  }
+
+  async softDeleteAPIKey(id) {
+    await this.storage.softDeleteAPIKey(id);
+  }
+
+  async restoreAPIKey(id) {
+    await this.storage.restoreAPIKey(id);
+  }
+
+  async purgeAPIKey(id) {
+    await this.storage.purgeAPIKey(id);
+  }
+
+  async emptyTrash() {
+    await this.storage.emptyTrash();
+  }
+
+  async getTrash() {
+    const [providers, keys] = await Promise.all([
+      this.storage.getTrashedProviders(),
+      this.storage.getTrashedAPIKeys()
+    ]);
+    return { providers, keys };
+  }
+
+  async togglePin(id) {
+    const provider = await this.storage.getProvider(id);
+    if (!provider) return false;
+    const pinned = !provider.pinned;
+    await this.storage.updateProvider(id, { pinned });
+    return pinned;
   }
 
   async getAPIKeys(providerId) {
@@ -239,11 +284,60 @@ export class ProviderManager {
     return providers.filter(p =>
       (p.name || '').toLowerCase().includes(lower) ||
       (p.base_url || '').toLowerCase().includes(lower) ||
+      (p.category || '').toLowerCase().includes(lower) ||
+      (p.models || []).some(m => (m || '').toLowerCase().includes(lower)) ||
       (p.keys || []).some(k =>
         (k.name || '').toLowerCase().includes(lower) ||
         (k.key || '').toLowerCase().includes(lower)
       )
     );
+  }
+
+  /**
+   * Filter + sort pipeline for the main grid.
+   * opts: { query, filter: 'all'|'pinned'|'withKeys'|'noKeys'|'custom', sort: 'name'|'keys'|'newest'|'pinned' }
+   */
+  async listProviders(opts = {}) {
+    let providers = await this.getAllProviders(true);
+    const { query = '', filter = 'all', sort = 'pinned' } = opts;
+
+    if (query.trim()) {
+      const lower = query.toLowerCase();
+      providers = providers.filter(p =>
+        (p.name || '').toLowerCase().includes(lower) ||
+        (p.base_url || '').toLowerCase().includes(lower) ||
+        (p.category || '').toLowerCase().includes(lower) ||
+        (p.models || []).some(m => (m || '').toLowerCase().includes(lower)) ||
+        (p.keys || []).some(k =>
+          (k.name || '').toLowerCase().includes(lower) ||
+          (k.key || '').toLowerCase().includes(lower)
+        )
+      );
+    }
+
+    switch (filter) {
+      case 'pinned': providers = providers.filter(p => p.pinned); break;
+      case 'withKeys': providers = providers.filter(p => (p.keys || []).length > 0); break;
+      case 'noKeys': providers = providers.filter(p => (p.keys || []).length === 0); break;
+      case 'custom': providers = providers.filter(p => p.is_custom); break;
+    }
+
+    const pinFirst = (a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+    switch (sort) {
+      case 'name':
+        providers.sort((a, b) => (a.name || '').localeCompare(b.name || '') || pinFirst(a, b));
+        break;
+      case 'keys':
+        providers.sort((a, b) => (b.keys || []).length - (a.keys || []).length || pinFirst(a, b));
+        break;
+      case 'newest':
+        providers.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || '') || pinFirst(a, b));
+        break;
+      default: // pinned
+        providers.sort(pinFirst);
+    }
+
+    return providers;
   }
 
   generateId(name) {
