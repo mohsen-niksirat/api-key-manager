@@ -9,45 +9,44 @@
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#0f172a" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Source+Code+Pro:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Source+Code+Pro:wght@400;500&family=Vazirmatn:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body class="theme-dark">
   <div id="modalEncrypt" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>🔒 Encryption</h3>
+        <h3>🔒 <span data-i18n="encryptionTitle">Encryption</span></h3>
         <button class="modal-close" onclick="app.closeModal('modalEncrypt')">&times;</button>
       </div>
       <div id="encryptStatus" class="encrypt-status"></div>
       <form id="formEncryptSetup" onsubmit="event.preventDefault(); app.setupEncryption()">
         <div class="form-group">
-          <label>Master password *</label>
-          <input type="password" name="password" minlength="8" placeholder="Min 8 characters" required autocomplete="new-password" />
+          <label data-i18n="masterPassword">Master password *</label>
+          <input type="password" name="password" minlength="8" data-i18n-placeholder="masterPasswordPh" placeholder="Min 8 characters" required autocomplete="new-password" />
         </div>
         <div class="form-group">
-          <label>Confirm password *</label>
-          <input type="password" name="confirm" minlength="8" placeholder="Repeat password" required autocomplete="new-password" />
+          <label data-i18n="confirmPassword">Confirm password *</label>
+          <input type="password" name="confirm" minlength="8" data-i18n-placeholder="confirmPasswordPh" placeholder="Repeat password" required autocomplete="new-password" />
         </div>
-        <p class="form-hint warning">⚠️ If you forget this password, encrypted keys cannot be recovered. There is no reset.</p>
+        <p class="form-hint warning" data-i18n="warningNoReset">⚠️ If you forget this password, encrypted keys cannot be recovered.</p>
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalEncrypt')">Cancel</button>
-          <button type="submit" class="btn btn-primary">Enable encryption</button>
+          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalEncrypt')" data-i18n="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" data-i18n="enableEncryption">Enable encryption</button>
         </div>
       </form>
       <form id="formEncryptUnlock" onsubmit="event.preventDefault(); app.unlockEncryption()" hidden>
         <div class="form-group">
-          <label>Master password</label>
-          <input type="password" name="password" placeholder="Master password" required autocomplete="current-password" />
+          <label data-i18n="masterPassword">Master password</label>
+          <input type="password" name="password" data-i18n-placeholder="masterPasswordPh" placeholder="Master password" required autocomplete="current-password" />
         </div>
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalEncrypt')">Cancel</button>
-          <button type="submit" class="btn btn-primary">Unlock</button>
+          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalEncrypt')" data-i18n="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" data-i18n="unlock">Unlock</button>
         </div>
-      </div>
       </form>
       <div class="form-actions" id="encryptActions" hidden>
-        <button class="btn btn-secondary btn-sm" onclick="app.closeModal('modalEncrypt')">Close</button>
-        <button class="btn btn-danger btn-sm" onclick="app.disableEncryption()">Disable encryption</button>
+        <button class="btn btn-secondary btn-sm" onclick="app.closeModal('modalEncrypt')" data-i18n="close">Close</button>
+        <button class="btn btn-danger btn-sm" onclick="app.disableEncryption()" data-i18n="disableEncryption">Disable encryption</button>
       </div>
     </div>
   </div>
@@ -57,19 +56,23 @@
     <header class="top-bar">
       <div class="logo">
         <span class="logo-icon">🗝️</span>
-        <span class="logo-text">API Key Manager</span>
+        <span class="logo-text" data-i18n="appTitle">API Key Manager</span>
       </div>
       <div class="top-bar-actions">
         <div class="search-container">
           <span class="search-icon">🔍</span>
-          <input type="search" id="globalSearch" placeholder="Search keys or providers..." enterkeyhint="search" autocomplete="off" />
+          <input type="search" id="globalSearch" data-i18n-placeholder="searchPlaceholder" placeholder="Search keys or providers..." enterkeyhint="search" autocomplete="off" />
           <button id="btnClearSearch" class="search-clear" title="Clear search" aria-label="Clear search" hidden>×</button>
         </div>
-        <button id="themeToggle" class="icon-button" title="Toggle theme">🌓</button>
-        <button id="btnDownload" class="icon-button" title="Download JSON">💾</button>
-        <button id="btnImport" class="icon-button" title="Import backup">📥</button>
-        <button id="btnExport" class="icon-button" title="Export JSON">📋</button>
-        <button id="btnSettings" class="icon-button" title="Settings">⚙️</button>
+        <select id="langSelect" class="lang-select" title="Language / زبان">
+          <option value="en">EN</option>
+          <option value="fa">فا</option>
+        </select>
+        <button id="themeToggle" class="icon-button" data-i18n-title="themeToggle" title="Toggle theme">🌓</button>
+        <button id="btnDownload" class="icon-button" data-i18n-title="download" title="Download JSON">💾</button>
+        <button id="btnImport" class="icon-button" data-i18n-title="importBackup" title="Import backup">📥</button>
+        <button id="btnExport" class="icon-button" data-i18n-title="exportJson" title="Export JSON">📋</button>
+        <button id="btnSettings" class="icon-button" data-i18n-title="settings" title="Settings">⚙️</button>
         <input type="file" id="importFile" accept=".json" style="display: none;" />
       </div>
     </header>
@@ -77,20 +80,20 @@
     <!-- Main Content -->
     <main class="main-content">
       <div class="providers-header">
-        <h2>Your API Providers</h2>
+        <h2 data-i18n="yourProviders">Your API Providers</h2>
         <div class="providers-header-actions">
-          <button id="btnBrowseDirectory" class="btn btn-secondary">🧭 Browse directory</button>
-          <button id="btnAddProvider" class="btn btn-primary">+ Add Provider</button>
+          <button id="btnBrowseDirectory" class="btn btn-secondary" data-i18n="browseDirectory">🧭 Browse directory</button>
+          <button id="btnAddProvider" class="btn btn-primary" data-i18n="addProvider">+ Add Provider</button>
         </div>
       </div>
       <div id="providersContainer" class="providers-grid">
-        <div class="loading-state">Loading...</div>
+        <div class="loading-state" data-i18n="loading">Loading...</div>
       </div>
     </main>
 
     <!-- Footer -->
     <footer class="footer">
-      <p>API Key Manager • Made with ❤️ by  <a href="https://github.com/mohsen-niksirat">mohsen-niksirat</a> — <a href="https://github.com/mohsen-niksirat/API-Key-Manager">GitHub</a> • MIT License</p>
+      <p>API Key Manager • Made with ❤️ by  <a href="https://github.com/mohsen-niksirat">mohsen-niksirat</a> — <a href="https://github.com/mohsen-niksirat/api-key-manager">GitHub</a> • MIT License</p>
       <p>All data stays locally in your browser — nothing is sent to any server.</p>
     </footer>
   </div>
@@ -99,33 +102,33 @@
   <div id="modalAddProvider" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Add Provider</h3>
+        <h3 data-i18n="addProviderTitle">Add Provider</h3>
         <button class="modal-close" onclick="app.closeModal('modalAddProvider')">&times;</button>
       </div>
       <form onsubmit="event.preventDefault(); app.saveProvider()">
         <div class="form-group">
-          <label>Provider Name *</label>
-          <input type="text" name="name" placeholder="e.g., My Custom API" required />
+          <label data-i18n="providerName">Provider Name *</label>
+          <input type="text" name="name" data-i18n-placeholder="providerNamePh" placeholder="e.g., My Custom API" required />
         </div>
         <div class="form-group">
-          <label>Base URL *</label>
-          <input type="url" name="base_url" placeholder="https://api.example.com/v1" required />
+          <label data-i18n="baseUrl">Base URL *</label>
+          <input type="url" name="base_url" data-i18n-placeholder="baseUrlPh" placeholder="https://api.example.com/v1" required />
         </div>
         <div class="form-group">
-          <label>Models (comma-separated)</label>
-          <input type="text" name="models" placeholder="gpt-4, gpt-3.5-turbo, ..." />
+          <label data-i18n="modelsLabel">Models (comma-separated)</label>
+          <input type="text" name="models" data-i18n-placeholder="modelsPh" placeholder="gpt-4, gpt-3.5-turbo, ..." />
         </div>
         <div class="form-group">
-          <label>Website</label>
-          <input type="url" name="website" placeholder="https://example.com" />
+          <label data-i18n="websiteLabel">Website</label>
+          <input type="url" name="website" data-i18n-placeholder="websitePh" placeholder="https://example.com" />
         </div>
         <div class="form-group">
-          <label>Logo URL</label>
-          <input type="url" name="logo" placeholder="https://example.com/logo.png" />
+          <label data-i18n="logoUrl">Logo URL</label>
+          <input type="url" name="logo" data-i18n-placeholder="logoPh" placeholder="https://example.com/logo.png" />
         </div>
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalAddProvider')">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save Provider</button>
+          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalAddProvider')" data-i18n="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" data-i18n="saveProvider">Save Provider</button>
         </div>
       </form>
     </div>
@@ -135,25 +138,25 @@
   <div id="modalAddKey" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Add API Key</h3>
+        <h3 data-i18n="addKeyTitle">Add API Key</h3>
         <button class="modal-close" onclick="app.closeModal('modalAddKey')">&times;</button>
       </div>
       <form onsubmit="event.preventDefault(); app.saveKey()">
         <div class="form-group">
-          <label>Key Name *</label>
-          <input type="text" name="name" placeholder="Production, Testing, etc." required />
+          <label data-i18n="keyName">Key Name *</label>
+          <input type="text" name="name" data-i18n-placeholder="keyNamePh" placeholder="Production, Testing, etc." required />
         </div>
         <div class="form-group">
-          <label>API Key *</label>
-          <input type="password" name="key" placeholder="sk-..." required />
+          <label data-i18n="apiKey">API Key *</label>
+          <input type="password" name="key" data-i18n-placeholder="apiKeyPh" placeholder="sk-..." required autocomplete="off" />
         </div>
         <div class="form-group">
-          <label>Expiry Date</label>
+          <label data-i18n="expiryDate">Expiry Date</label>
           <input type="date" name="expiry" />
         </div>
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalAddKey')">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save Key</button>
+          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalAddKey')" data-i18n="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" data-i18n="saveKey">Save Key</button>
         </div>
       </form>
     </div>
@@ -163,8 +166,8 @@
   <div id="modalProviderDetail" class="modal modal-large">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Provider Details</h3>
-        <span class="edit-mode-toggle" id="editModeToggle" onclick="app.toggleEditMode()">✏️ Edit</span>
+        <h3 data-i18n="providerDetails">Provider Details</h3>
+        <span class="edit-mode-toggle" id="editModeToggle" onclick="app.toggleEditMode()" data-i18n="edit">✏️ Edit</span>
         <button class="modal-close" onclick="app.closeModal('modalProviderDetail')">&times;</button>
       </div>
       <div class="modal-body">
@@ -176,17 +179,49 @@
   <div id="modalExport" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Export Data</h3>
+        <h3 data-i18n="exportTitle">Export Data</h3>
         <button class="modal-close" onclick="app.closeModal('modalExport')">&times;</button>
       </div>
       <div class="form-group">
-        <label>Exported JSON</label>
+        <label data-i18n="exportedJson">Exported JSON</label>
         <textarea readonly rows="10" id="exportTextarea"></textarea>
       </div>
       <div class="form-actions">
-        <button class="btn btn-secondary" onclick="app.closeModal('modalExport')">Close</button>
-        <button class="btn btn-primary" onclick="app.copyExport()">Copy to clipboard</button>
+        <button class="btn btn-secondary" onclick="app.closeModal('modalExport')" data-i18n="close">Close</button>
+        <button class="btn btn-primary" onclick="app.copyExport()" data-i18n="copyToClipboard">Copy to clipboard</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal: Encrypted Backup -->
+  <div id="modalBackup" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>🔐 <span data-i18n="backupTitle">Encrypted Backup</span></h3>
+        <button class="modal-close" onclick="app.closeModal('modalBackup')">&times;</button>
+      </div>
+      <div id="backupDecryptSection" hidden>
+        <div class="form-group">
+          <label data-i18n="importEncrypted">Encrypted backup file — enter its password:</label>
+          <input type="password" id="backupDecryptPassword" autocomplete="off" />
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-secondary" onclick="app.cancelEncryptedImport()" data-i18n="cancel">Cancel</button>
+          <button class="btn btn-primary" onclick="app.confirmEncryptedImport()" data-i18n="unlock">Unlock</button>
+        </div>
+      </div>
+      <form id="formBackup" onsubmit="event.preventDefault(); app.downloadEncryptedBackup()">
+        <div class="form-group">
+          <label data-i18n="backupPassword">Backup password *</label>
+          <input type="password" name="password" minlength="8" data-i18n-placeholder="masterPasswordPh" placeholder="Min 8 characters" required autocomplete="new-password" />
+        </div>
+        <p class="form-hint" data-i18n="backupPasswordHint">Used to encrypt the backup file.</p>
+        <div class="form-actions backup-actions">
+          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalBackup')" data-i18n="cancel">Cancel</button>
+          <button type="button" class="btn btn-secondary" onclick="app.downloadPlainBackup()" data-i18n="downloadPlain">Plain JSON</button>
+          <button type="submit" class="btn btn-primary" data-i18n="downloadEncrypted">🔒 Download encrypted</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -194,14 +229,14 @@
   <div id="modalDirectory" class="modal modal-large">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>🧭 Provider Directory</h3>
+        <h3>🧭 <span data-i18n="directoryTitle">Provider Directory</span></h3>
         <button class="modal-close" onclick="app.closeModal('modalDirectory')">&times;</button>
       </div>
       <div class="form-group directory-search">
-        <input type="search" id="directorySearch" placeholder="Filter directory..." autocomplete="off" />
+        <input type="search" id="directorySearch" data-i18n-placeholder="filterDirectory" placeholder="Filter directory..." autocomplete="off" />
       </div>
       <div id="directoryList" class="directory-list">
-        <div class="loading-state">Loading directory...</div>
+        <div class="loading-state" data-i18n="loadingDirectory">Loading directory...</div>
       </div>
     </div>
   </div>
@@ -210,33 +245,33 @@
   <div id="modalEditProvider" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Edit Provider</h3>
+        <h3 data-i18n="editProviderTitle">Edit Provider</h3>
         <button class="modal-close" onclick="app.closeModal('modalEditProvider')">&times;</button>
       </div>
       <form onsubmit="event.preventDefault(); app.saveProviderEdits()">
         <div class="form-group">
-          <label>Provider Name *</label>
+          <label data-i18n="providerName">Provider Name *</label>
           <input type="text" name="name" required />
         </div>
         <div class="form-group">
-          <label>Base URL *</label>
+          <label data-i18n="baseUrl">Base URL *</label>
           <input type="url" name="base_url" required />
         </div>
         <div class="form-group">
-          <label>Models (comma-separated)</label>
+          <label data-i18n="modelsLabel">Models (comma-separated)</label>
           <input type="text" name="models" />
         </div>
         <div class="form-group">
-          <label>Website</label>
+          <label data-i18n="websiteLabel">Website</label>
           <input type="url" name="website" />
         </div>
         <div class="form-group">
-          <label>Logo URL</label>
+          <label data-i18n="logoUrl">Logo URL</label>
           <input type="url" name="logo" />
         </div>
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalEditProvider')">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save Changes</button>
+          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalEditProvider')" data-i18n="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" data-i18n="saveChanges">Save Changes</button>
         </div>
       </form>
     </div>
@@ -246,33 +281,40 @@
   <div id="modalSettings" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Settings</h3>
+        <h3 data-i18n="settingsTitle">Settings</h3>
         <button class="modal-close" onclick="app.closeModal('modalSettings')">&times;</button>
       </div>
       <form onsubmit="event.preventDefault(); app.saveSettings()">
         <div class="form-group">
-          <label>Theme</label>
+          <label data-i18n="theme">Theme</label>
           <select id="themeSelect">
-            <option value="theme-dark">Dark</option>
-            <option value="theme-light">Light</option>
-            <option value="theme-system">System</option>
+            <option value="theme-dark" data-i18n="themeDark">Dark</option>
+            <option value="theme-light" data-i18n="themeLight">Light</option>
+            <option value="theme-system" data-i18n="themeSystem">System</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label data-i18n="language">Language</label>
+          <select id="langSelectSettings">
+            <option value="en">English</option>
+            <option value="fa">فارسی (Persian)</option>
           </select>
         </div>
         <div class="form-group">
           <label class="checkbox-label">
             <input type="checkbox" id="autoSave" checked />
-            <span>Auto-save on changes</span>
+            <span data-i18n="autoSave">Auto-save on changes</span>
           </label>
         </div>
         <div class="form-group">
           <label class="checkbox-label">
             <input type="checkbox" id="encryptToggle" onclick="app.toggleEncryptFromSettings(this)" />
-            <span>🔒 Encrypt API keys (master password)</span>
+            <span data-i18n="encryptKeys">🔒 Encrypt API keys (master password)</span>
           </label>
         </div>
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalSettings')">Close</button>
-          <button type="submit" class="btn btn-primary">Save</button>
+          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalSettings')" data-i18n="close">Close</button>
+          <button type="submit" class="btn btn-primary" data-i18n="save">Save</button>
         </div>
       </form>
     </div>
@@ -280,6 +322,8 @@
 
   <script src="js/storage.js" type="module"></script>
   <script src="js/providers.js" type="module"></script>
+  <script src="js/crypto.js" type="module"></script>
+  <script src="js/i18n.js" type="module"></script>
   <script src="js/app.js" type="module"></script>
 </body>
 </html>

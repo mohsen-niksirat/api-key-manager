@@ -9,6 +9,9 @@ import {
   makeVerifier,
   verifyPassword
 } from './crypto.js';
+import { I18n } from './i18n.js';
+
+const BACKUP_PREFIX = 'AKM-ENCRYPTED-BACKUP:v1:';
 
 class App {
   constructor() {
@@ -18,11 +21,21 @@ class App {
     this.editMode = false;
     this.masterPassword = null;
     this.encryptEnabled = false;
+    this.i18n = new I18n(I18n.detectLang());
+    this.visibleKeys = new Set(); // key ids currently revealed via eye toggle
+    this.pendingEncryptedImport = null;
+  }
+
+  /** Translate helper bound to the current language. */
+  t(key, params) {
+    return this.i18n.t(key, params);
   }
 
   async init() {
     await this.storage.init();
     await this.providerManager.seedIfEmpty();
+    const savedLang = await this.storage.getSetting('language');
+    this.i18n.setLang(savedLang || I18n.detectLang());
     this.bindEvents();
     await this.loadSettings();
     await this.initEncryption();
@@ -50,6 +63,8 @@ class App {
     document.getElementById('btnClearSearch')?.addEventListener('click', () => this.clearSearch());
     document.getElementById('themeToggle')?.addEventListener('click', () => this.toggleTheme());
     document.getElementById('directorySearch')?.addEventListener('input', (e) => this.renderDirectory(e.target.value));
+    document.getElementById('langSelect')?.addEventListener('change', (e) => this.changeLanguage(e.target.value));
+    document.getElementById('langSelectSettings')?.addEventListener('change', (e) => this.changeLanguage(e.target.value));
 
     // Close modals via backdrop click
     document.querySelectorAll('.modal').forEach(modal => {
@@ -65,6 +80,27 @@ class App {
     });
   }
 
+  // ---------- i18n ----------
+
+  changeLanguage(lang) {
+    this.i18n.setLang(lang);
+    this.storage.saveSetting('language', lang);
+    this.applyLanguage();
+  }
+
+  applyLanguage() {
+    this.i18n.applyToDOM();
+    const langSelect = document.getElementById('langSelect');
+    const langSelectSettings = document.getElementById('langSelectSettings');
+    if (langSelect) langSelect.value = this.i18n.getLang();
+    if (langSelectSettings) langSelectSettings.value = this.i18n.getLang();
+    document.title = this.t('appTitle');
+    this.loadProviders();
+    if (document.getElementById('modalDirectory')?.classList.contains('open')) {
+      this.renderDirectory(document.getElementById('directorySearch')?.value || '');
+    }
+  }
+
   async loadProviders() {
     const providers = await this.providerManager.getAllProviders(true);
     this.renderProviders(providers);
@@ -75,7 +111,7 @@ class App {
     if (!container) return;
 
     if (!providers.length) {
-      container.innerHTML = '<div class="empty-state-full">No providers. Add one to get started!</div>';
+      container.innerHTML = `<div class="empty-state-full">${escapeHtml(this.t('noProviders'))}</div>`;
       return;
     }
 
@@ -97,17 +133,17 @@ class App {
     const keyCount = provider.keys?.length || 0;
     const activeKeys = provider.keys?.filter(k => k.status === 'active').length || 0;
 
-    let body = `<div class="provider-body"><div class="no-keys" data-stop onclick="app.addKeyToProvider('${safeId}')">No keys yet →</div></div>`;
+    let body = `<div class="provider-body"><div class="no-keys" data-stop onclick="app.addKeyToProvider('${safeId}')">${escapeHtml(this.t('noKeysYet'))}</div></div>`;
     if (keyCount > 0) {
       const previews = provider.keys.slice(0, 2).map(k =>
         `<div class="key-preview" data-stop onclick="app.viewProvider('${safeId}')">${maskKey(k.key)}</div>`
       ).join('');
-      const more = keyCount > 2 ? `<div class="key-preview">+${keyCount - 2} more</div>` : '';
+      const more = keyCount > 2 ? `<div class="key-preview">+${keyCount - 2} ${escapeHtml(this.t('more'))}</div>` : '';
       body = `
         <div class="provider-body">
           <div class="provider-stats">
-            <span class="stat-badge active">${activeKeys} active</span>
-            <span class="stat-badge">Total: ${keyCount}</span>
+            <span class="stat-badge active">${activeKeys} ${escapeHtml(this.t('active'))}</span>
+            <span class="stat-badge">${escapeHtml(this.t('total'))}: ${keyCount}</span>
           </div>
           <div class="keys-preview">${previews}${more}</div>
         </div>`;
@@ -166,7 +202,7 @@ class App {
     // Reset edit toggle
     const editToggle = document.getElementById('editModeToggle');
     if (editToggle) {
-      editToggle.textContent = '✏️ Edit';
+      editToggle.textContent = this.t('edit');
       editToggle.classList.remove('editing');
     }
 
@@ -181,39 +217,43 @@ class App {
 
     const keysList = keys.length > 0 ? keys.map(k => {
       const statusColor = getKeyStatusColor(k.status);
-      const keyName = escapeHtml(k.name || 'Unnamed Key');
+      const keyName = escapeHtml(k.name || this.t('unnamedKey'));
       const isEnc = isEncrypted(k.key);
-      const lockBadge = isEnc ? '<span class="key-lock" title="Encrypted at rest">🔒</span>' : '';
-      const keyValue = maskKey(k.key);
+      const lockBadge = isEnc ? `<span class="key-lock" title="${escapeHtml(this.t('encryptedAtRest'))}">🔒</span>` : '';
+      const revealed = this.visibleKeys.has(Number(k.id));
+      const keyValue = escapeHtml(revealed ? k.key : maskKey(k.key));
+      const eyeBtn = `
+        <button class="icon-btn eye-btn" onclick="app.toggleKeyVisibility(${Number(k.id)})" title="${escapeHtml(revealed ? this.t('hideKey') : this.t('showKey'))}">${revealed ? '🙈' : '👁️'}</button>`;
       const notes = k.notes ? `<div class="key-notes">${escapeHtml(k.notes)}</div>` : '';
-      const expiry = k.expiry ? `<div class="key-expiry">Expires: ${new Date(k.expiry).toLocaleDateString()}</div>` : '';
+      const expiry = k.expiry ? `<div class="key-expiry">${escapeHtml(this.t('expires'))}: ${new Date(k.expiry).toLocaleDateString()}</div>` : '';
       return `
-        <div class="key-row" data-key-id="${escapeHtml(k.id)}">
+        <div class="key-row ${revealed ? 'key-revealed' : ''}" data-key-id="${escapeHtml(k.id)}">
           <div class="key-info">
             <div class="key-name">${keyName} ${lockBadge}</div>
             <div class="key-value">${keyValue}</div>
             ${notes}${expiry}
           </div>
           <div class="key-status" style="background: ${statusColor}20; color: ${statusColor}">${escapeHtml(k.status || 'active')}</div>
-          <button class="icon-btn" onclick="app.copyKey(${Number(k.id)})" title="Copy key">📋</button>
-          <button class="icon-btn danger" onclick="app.deleteKey(${Number(k.id)})" title="Delete key">🗑️</button>
+          ${eyeBtn}
+          <button class="icon-btn" onclick="app.copyKey(${Number(k.id)})" title="${escapeHtml(this.t('copyKey'))}">📋</button>
+          <button class="icon-btn danger" onclick="app.deleteKey(${Number(k.id)})" title="${escapeHtml(this.t('deleteKey'))}">🗑️</button>
         </div>
       `;
-    }).join('') : '<div class="empty-state">No keys for this provider</div>';
+    }).join('') : `<div class="empty-state">${escapeHtml(this.t('noKeysForProvider'))}</div>`;
 
     const models = provider.models || [];
     const modelsList = models.length > 0 ?
       `<div class="models-section">
-        <h4>Models</h4>
+        <h4>${escapeHtml(this.t('models'))}</h4>
         <div class="models-tags">${models.map(m => {
           const model = escapeHtml(m);
           return `<span class="model-tag" title="Click to copy" onclick="app.copyToClipboard('${model.replace(/'/g, '&#39;')}')">${model} 📋</span>`;
         }).join('')}</div>
         <div class="actions-row">
           <button class="btn btn-secondary btn-sm" onclick="app.copyToClipboard('${baseUrl.replace(/'/g, '&#39;')}')">
-            📋 Copy Base URL
+            ${escapeHtml(this.t('copyBaseUrl'))}
           </button>
-          ${provider.website ? `<button class="btn btn-secondary btn-sm" onclick="app.openWebsite('${escapeHtml(provider.website).replace(/'/g, '&#39;')}')">🔗 Website</button>` : ''}
+          ${provider.website ? `<button class="btn btn-secondary btn-sm" onclick="app.openWebsite('${escapeHtml(provider.website).replace(/'/g, '&#39;')}')">${escapeHtml(this.t('website'))}</button>` : ''}
         </div>
       </div>` : '';
 
@@ -231,13 +271,13 @@ class App {
 
         <div class="keys-section">
           <div class="keys-header">
-            <h3>API Keys (${keys.length})</h3>
+            <h3>${escapeHtml(this.t('apiKeys'))} (${keys.length})</h3>
             <div>
               <button class="btn btn-primary btn-sm" onclick="app.addKeyToProvider('${safeId}')">
-                + Add Key
+                ${escapeHtml(this.t('addKey'))}
               </button>
               <button class="btn btn-secondary btn-sm" onclick="app.deleteProvider('${safeId}')">
-                🗑️ Delete Provider
+                ${escapeHtml(this.t('deleteProvider'))}
               </button>
             </div>
           </div>
@@ -250,6 +290,20 @@ class App {
   toggleEditMode() {
     if (!this.activeProvider) return;
     this.openEditProvider(this.activeProvider.id);
+  }
+
+  /** Reveal/hide the full key value for one row. */
+  toggleKeyVisibility(id) {
+    id = Number(id);
+    if (this.visibleKeys.has(id)) {
+      this.visibleKeys.delete(id);
+    } else {
+      this.visibleKeys.add(id);
+    }
+    // Re-render just the detail modal if open
+    if (this.activeProvider && document.getElementById('modalProviderDetail')?.classList.contains('open')) {
+      this.viewProvider(this.activeProvider.id);
+    }
   }
 
   async openEditProvider(id) {
@@ -276,7 +330,7 @@ class App {
     const name = form.querySelector('input[name="name"]').value.trim();
     const baseUrl = form.querySelector('input[name="base_url"]').value.trim();
     if (!name || !baseUrl) {
-      this.showToast('Please fill in required fields', 'error');
+      this.showToast(this.t('toastFillRequired'), 'error');
       return;
     }
 
@@ -293,10 +347,10 @@ class App {
       if (this.activeProvider?.id === id) {
         this.viewProvider(id);
       }
-      this.showToast('Provider updated');
+      this.showToast(this.t('toastProviderUpdated'));
     } catch (err) {
       console.error('Error updating provider:', err);
-      this.showToast('Failed to update provider: ' + err.message, 'error');
+      this.showToast(this.t('toastProviderUpdated'), 'error');
     }
   }
 
@@ -318,7 +372,7 @@ class App {
     const expiry = form.querySelector('input[name="expiry"]').value;
 
     if (!key || !providerId) {
-      this.showToast('Please enter a key', 'error');
+      this.showToast(this.t('toastEnterKey'), 'error');
       return;
     }
 
@@ -336,10 +390,10 @@ class App {
       if (this.activeProvider?.id === providerId) {
         this.viewProvider(providerId);
       }
-      this.showToast('Key added');
+      this.showToast(this.t('toastKeyAdded'));
     } catch (err) {
       console.error('Error saving key:', err);
-      this.showToast('Failed to save key: ' + err.message, 'error');
+      this.showToast(err.message, 'error');
     }
   }
 
@@ -353,7 +407,7 @@ class App {
   async copyToClipboard(text) {
     try {
       await navigator.clipboard.writeText(text);
-      this.showToast('Copied to clipboard');
+      this.showToast(this.t('toastCopied'));
     } catch (e) {
       // Fallback for non-secure contexts (e.g. plain http:// LAN access)
       const ta = document.createElement('textarea');
@@ -364,9 +418,9 @@ class App {
       ta.select();
       try {
         document.execCommand('copy');
-        this.showToast('Copied to clipboard');
+        this.showToast(this.t('toastCopied'));
       } catch (err) {
-        this.showToast('Copy failed', 'error');
+        this.showToast(this.t('toastCopyFailed'), 'error');
       }
       ta.remove();
     }
@@ -377,9 +431,10 @@ class App {
   }
 
   async deleteKey(id) {
-    if (!confirm('Delete this key?')) return;
+    if (!confirm(this.t('confirmDeleteKey'))) return;
     await this.providerManager.deleteAPIKey(id);
-    this.showToast('Key deleted');
+    this.visibleKeys.delete(Number(id));
+    this.showToast(this.t('toastKeyDeleted'));
     if (this.activeProvider) {
       this.viewProvider(this.activeProvider.id);
     }
@@ -388,12 +443,12 @@ class App {
 
   async deleteProvider(id) {
     const provider = await this.providerManager.getProvider(id);
-    if (!confirm(`Delete provider "${provider?.name}" and all its keys?`)) return;
+    if (!confirm(this.t('confirmDeleteProvider', { name: provider?.name || '' }))) return;
 
     await this.providerManager.deleteProvider(id);
     this.closeModal('modalProviderDetail');
     this.loadProviders();
-    this.showToast('Provider deleted');
+    this.showToast(this.t('toastProviderDeleted'));
   }
 
   async saveProvider() {
@@ -407,7 +462,7 @@ class App {
     const logo = form.querySelector('input[name="logo"]').value.trim();
 
     if (!name || !baseUrl) {
-      this.showToast('Please fill in required fields', 'error');
+      this.showToast(this.t('toastFillRequired'), 'error');
       return;
     }
 
@@ -424,7 +479,7 @@ class App {
     modal.classList.remove('open');
     form.reset();
     this.loadProviders();
-    this.showToast('Provider added');
+    this.showToast(this.t('toastProviderAdded'));
   }
 
   async exportData() {
@@ -434,20 +489,58 @@ class App {
     this.openModal('modalExport');
   }
 
-  async downloadData() {
-    const data = await this.storage.exportData();
-    const json = JSON.stringify(data, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
+  // ---------- Backup (encrypted or plain) ----------
 
+  /** 💾 button opens the encrypted-backup flow. */
+  async downloadData() {
+    const form = document.getElementById('formBackup');
+    form.reset();
+    // Pre-fill with master password if encryption is unlocked
+    if (this.encryptEnabled && this.masterPassword) {
+      form.querySelector('input[name="password"]').value = this.masterPassword;
+    }
+    document.getElementById('backupDecryptSection').hidden = true;
+    form.hidden = false;
+    this.openModal('modalBackup');
+  }
+
+  async downloadEncryptedBackup() {
+    const form = document.getElementById('formBackup');
+    const password = form.querySelector('input[name="password"]').value;
+
+    if (password.length < 8) {
+      this.showToast(this.t('toastPwShort'), 'error');
+      return;
+    }
+
+    try {
+      const data = await this.storage.exportData();
+      const cipher = await encryptWithPassword(password, JSON.stringify(data));
+      this.saveBackupFile(BACKUP_PREFIX + cipher, 'application/octet-stream', '.akmbak');
+      this.showToast(this.t('toastEncryptedBackup'));
+      this.closeModal('modalBackup');
+    } catch (err) {
+      console.error('Encrypted backup failed:', err);
+      this.showToast(err.message, 'error');
+    }
+  }
+
+  async downloadPlainBackup() {
+    const data = await this.storage.exportData();
+    this.saveBackupFile(JSON.stringify(data, null, 2), 'application/json', '.json');
+    this.showToast(this.t('toastBackupDownloaded'));
+  }
+
+  saveBackupFile(content, mime, ext) {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `api-keys-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `api-keys-backup-${new Date().toISOString().split('T')[0]}${ext}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    this.showToast('Backup downloaded');
   }
 
   async handleImport(e) {
@@ -456,25 +549,62 @@ class App {
 
     try {
       const text = await file.text();
-      const data = JSON.parse(text);
 
+      // Encrypted backup?
+      if (text.startsWith(BACKUP_PREFIX)) {
+        this.pendingEncryptedImport = text.slice(BACKUP_PREFIX.length);
+        const form = document.getElementById('formBackup');
+        form.reset();
+        form.hidden = true;
+        document.getElementById('backupDecryptSection').hidden = false;
+        this.openModal('modalBackup');
+        document.getElementById('backupDecryptPassword')?.focus();
+        return;
+      }
+
+      const data = JSON.parse(text);
       if (!data || !Array.isArray(data.providers)) {
         throw new Error('Invalid file format');
       }
 
-      const providerCount = data.providers.length;
-      if (!confirm(`Import ${providerCount} providers? This will overwrite existing data.`)) {
-        return;
-      }
-
-      await this.storage.importData(data);
-      this.showToast('Data imported successfully');
-      this.loadProviders();
+      await this.confirmAndImport(data);
     } catch (err) {
-      this.showToast('Invalid file format: ' + err.message, 'error');
+      this.showToast(this.t('toastInvalidFile') + ': ' + err.message, 'error');
     } finally {
       e.target.value = '';
     }
+  }
+
+  cancelEncryptedImport() {
+    this.pendingEncryptedImport = null;
+    this.closeModal('modalBackup');
+  }
+
+  async confirmEncryptedImport() {
+    if (!this.pendingEncryptedImport) return;
+    const password = document.getElementById('backupDecryptPassword').value;
+
+    try {
+      const json = await decryptWithPassword(password, this.pendingEncryptedImport);
+      const data = JSON.parse(json);
+      if (!data || !Array.isArray(data.providers)) {
+        throw new Error('Invalid backup structure');
+      }
+      this.pendingEncryptedImport = null;
+      await this.confirmAndImport(data);
+      this.showToast(this.t('toastBackupDecrypted'));
+    } catch (err) {
+      this.showToast(this.t('toastWrongPw'), 'error');
+    }
+  }
+
+  async confirmAndImport(data) {
+    const count = data.providers.length;
+    if (!confirm(this.t('confirmImport', { n: count }))) return;
+
+    await this.storage.importData(data);
+    this.showToast(this.t('toastImported'));
+    this.loadProviders();
   }
 
   async openSettings() {
@@ -482,6 +612,7 @@ class App {
     const autoSave = await this.storage.getSetting('autoSave');
     const modal = document.getElementById('modalSettings');
     modal.querySelector('#themeSelect').value = theme;
+    modal.querySelector('#langSelectSettings').value = this.i18n.getLang();
     modal.querySelector('#autoSave').checked = autoSave !== false;
     modal.querySelector('#encryptToggle').checked = this.encryptEnabled;
     this.openModal('modalSettings');
@@ -537,14 +668,16 @@ class App {
     const el = document.getElementById('encryptStatus');
     if (!el) return;
     if (!this.encryptEnabled) {
-      el.innerHTML = '<span class="status-off">○ Encryption is off — keys are stored in plain text.</span>';
+      el.innerHTML = `<span class="status-off">${escapeHtml(this.t('encryptStatusOff'))}</span>`;
       return;
     }
     const unlocked = !!this.masterPassword;
     const { encrypted, total } = await this.providerManager.refreshEncryptionStats();
-    el.innerHTML = unlocked
-      ? `<span class="status-on">● Unlocked — ${encrypted}/${total} keys encrypted.</span>`
-      : `<span class="status-locked">🔒 Locked — ${encrypted}/${total} keys encrypted. Enter password to unlock.</span>`;
+    const text = unlocked
+      ? this.t('encryptStatusUnlocked', { n: encrypted, t: total })
+      : this.t('encryptStatusLocked', { n: encrypted, t: total });
+    const cls = unlocked ? 'status-on' : 'status-locked';
+    el.innerHTML = `<span class="${cls}">${escapeHtml(text)}</span>`;
   }
 
   async setupEncryption() {
@@ -553,11 +686,11 @@ class App {
     const confirm = form.querySelector('input[name="confirm"]').value;
 
     if (password.length < 8) {
-      this.showToast('Password must be at least 8 characters', 'error');
+      this.showToast(this.t('toastPwShort'), 'error');
       return;
     }
     if (password !== confirm) {
-      this.showToast('Passwords do not match', 'error');
+      this.showToast(this.t('toastPwMismatch'), 'error');
       return;
     }
 
@@ -572,10 +705,10 @@ class App {
       form.reset();
       this.closeModal('modalEncrypt');
       this.loadProviders();
-      this.showToast(`Encryption enabled — ${count} key(s) encrypted`);
+      this.showToast(this.t('toastEncEnabled', { n: count }));
     } catch (err) {
       console.error('Encryption setup failed:', err);
-      this.showToast('Failed to enable encryption: ' + err.message, 'error');
+      this.showToast(this.t('toastEncFail') + ': ' + err.message, 'error');
     }
   }
 
@@ -588,15 +721,15 @@ class App {
       this.masterPassword = password;
       form.reset();
       this.closeModal('modalEncrypt');
-      this.showToast('Encryption unlocked');
+      this.showToast(this.t('toastEncUnlocked'));
       this.updateEncryptStatus();
     } else {
-      this.showToast('Wrong password', 'error');
+      this.showToast(this.t('toastWrongPw'), 'error');
     }
   }
 
   async disableEncryption() {
-    if (!confirm('Disable encryption and store all keys in plain text?')) return;
+    if (!confirm(this.t('confirmDisableEnc'))) return;
 
     const form = document.getElementById('formEncryptUnlock');
     let password = this.masterPassword;
@@ -605,7 +738,7 @@ class App {
       password = form.querySelector('input[name="password"]').value;
       const verifier = await this.storage.getSetting('masterVerifier');
       if (!(await verifyPassword(password, verifier))) {
-        this.showToast('Wrong password', 'error');
+        this.showToast(this.t('toastWrongPw'), 'error');
         return;
       }
     }
@@ -617,10 +750,10 @@ class App {
       this.encryptEnabled = false;
       this.closeModal('modalEncrypt');
       this.loadProviders();
-      this.showToast(`Encryption disabled — ${count} key(s) decrypted`);
+      this.showToast(this.t('toastEncDisabled', { n: count }));
     } catch (err) {
       console.error('Decryption failed:', err);
-      this.showToast('Failed to decrypt: ' + err.message, 'error');
+      this.showToast(this.t('toastDecryptFail') + ': ' + err.message, 'error');
     }
   }
 
@@ -648,7 +781,7 @@ class App {
     );
 
     if (!items.length) {
-      list.innerHTML = '<div class="empty-state">No providers match your filter.</div>';
+      list.innerHTML = `<div class="empty-state">${escapeHtml(this.t('noMatch'))}</div>`;
       return;
     }
 
@@ -663,8 +796,8 @@ class App {
             <div class="directory-url">${escapeHtml(p.base_url)}</div>
           </div>
           ${added
-            ? '<span class="directory-added">✓ Added</span>'
-            : `<button class="btn btn-primary btn-sm" onclick="app.addFromDirectory('${safeId}')">+ Add</button>`}
+            ? `<span class="directory-added">${escapeHtml(this.t('added'))}</span>`
+            : `<button class="btn btn-primary btn-sm" onclick="app.addFromDirectory('${safeId}')">${escapeHtml(this.t('addAction'))}</button>`}
         </div>
       `;
     }).join('');
@@ -677,11 +810,11 @@ class App {
 
     const result = await this.providerManager.addFromDirectory(entry);
     if (result.added) {
-      this.showToast(`${entry.name} added`);
+      this.showToast(this.t('toastAddedProvider', { name: entry.name }));
       this.loadProviders();
       this.renderDirectory(document.getElementById('directorySearch')?.value || '');
     } else {
-      this.showToast('Provider already exists', 'error');
+      this.showToast(this.t('toastAlreadyExists'), 'error');
     }
   }
 
@@ -699,6 +832,7 @@ class App {
   async loadSettings() {
     const theme = await this.storage.getSetting('theme');
     this.applyTheme(theme || 'theme-dark');
+    this.applyLanguage();
     // Reflect system theme changes live when theme=system
     window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
       this.storage.getSetting('theme').then(t => {
@@ -726,7 +860,7 @@ class App {
 
     this.applyTheme(theme);
     modal.classList.remove('open');
-    this.showToast('Settings saved');
+    this.showToast(this.t('toastSettingsSaved'));
   }
 
   async toggleTheme() {
@@ -773,7 +907,7 @@ class App {
 window.app = new App();
 window.addEventListener('load', () => {
   app.init().then(() => {
-    app.showToast('API Key Manager loaded');
+    app.showToast(app.t('toastLoaded'));
   }).catch(err => {
     console.error('Init error:', err);
     app.showToast('Failed to load', 'error');
