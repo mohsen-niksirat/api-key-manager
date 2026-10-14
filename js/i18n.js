@@ -44,6 +44,7 @@ export const TRANSLATIONS = {
     toastEmptied: 'Recycle bin emptied',
     confirmEmptyTrash: 'Permanently delete ALL items in the recycle bin?',
     confirmPurge: 'Permanently delete "{name}"? This cannot be undone.',
+    deleteForever: 'Delete forever',
 
     // Key tester
     keyTestTitle: 'Test API Keys',
@@ -227,6 +228,7 @@ export const TRANSLATIONS = {
     toastEmptied: 'سطل بازیافت خالی شد',
     confirmEmptyTrash: 'همه موارد سطل بازیافت برای همیشه حذف شوند؟',
     confirmPurge: '«{name}» برای همیشه حذف شود؟ قابل بازگشت نیست.',
+    deleteForever: 'حذف دائمی',
 
     keyTestTitle: 'تست کلیدهای API',
     testKey: 'تست',

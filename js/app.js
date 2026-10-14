@@ -520,7 +520,7 @@ class App {
             <div class="trash-date">${p.deleted_at ? new Date(p.deleted_at).toLocaleString() : ''}</div>
           </div>
           <button class="btn btn-secondary btn-sm" onclick="app.restoreProvider('${escapeHtml(p.id)}')">♻️ ${escapeHtml(this.t('restore'))}</button>
-          <button class="btn btn-danger btn-sm" onclick="app.purgeProvider('${escapeHtml(p.id)}')">${escapeHtml(this.t('deleteKey'))}</button>
+          <button class="btn btn-danger btn-sm" onclick="app.purgeProvider('${escapeHtml(p.id)}')">${escapeHtml(this.t('deleteForever'))}</button>
         </div>
       `).join('')}` : '';
 
@@ -534,7 +534,7 @@ class App {
             <div class="trash-date">${k.deleted_at ? new Date(k.deleted_at).toLocaleString() : ''}</div>
           </div>
           <button class="btn btn-secondary btn-sm" onclick="app.restoreKey(${Number(k.id)})">♻️ ${escapeHtml(this.t('restore'))}</button>
-          <button class="btn btn-danger btn-sm" onclick="app.purgeKey(${Number(k.id)})">${escapeHtml(this.t('deleteKey'))}</button>
+          <button class="btn btn-danger btn-sm" onclick="app.purgeKey(${Number(k.id)})">${escapeHtml(this.t('deleteForever'))}</button>
         </div>
       `).join('')}` : '';
 
@@ -1095,6 +1095,7 @@ class App {
     if (!container) {
       container = document.createElement('div');
       container.id = 'toastContainer';
+      container.className = 'toast-container';
       document.body.appendChild(container);
     }
 
@@ -1108,8 +1109,8 @@ class App {
       setTimeout(() => {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 300);
-      }, 2000);
-    }, 100);
+      }, 2400);
+    }, 40);
   }
 }
 
