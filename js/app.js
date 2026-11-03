@@ -1,7 +1,7 @@
 // app.js - Main application logic
 
 import { APIKeyStorage } from './storage.js';
-import { ProviderManager, maskKey, getKeyStatusColor, getProviderIcon, escapeHtml } from './providers.js';
+import { ProviderManager, maskKey, getProviderIcon, escapeHtml } from './providers.js';
 import {
   encryptWithPassword,
   decryptWithPassword,
@@ -13,6 +13,9 @@ import { I18n } from './i18n.js';
 import { testKey, testAllKeys } from './keytester.js';
 
 const BACKUP_PREFIX = 'AKM-ENCRYPTED-BACKUP:v1:';
+
+/** Inline SVG icon from the sprite defined in index.html. */
+const icon = (name, cls = 'icon') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 
 class App {
   constructor() {
@@ -93,6 +96,33 @@ class App {
       const stopper = e.target.closest('[data-stop]');
       if (stopper) e.stopPropagation();
     });
+
+    // Escape closes the topmost open modal; Tab stays trapped inside it
+    document.addEventListener('keydown', (e) => {
+      const open = document.querySelector('.modal.open');
+      if (!open) return;
+      if (e.key === 'Escape') {
+        this.closeModal(open.id);
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const focusables = Array.from(
+        open.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+      ).filter(el => el instanceof HTMLElement && !el.disabled && el.offsetParent !== null);
+      if (!focusables.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (!open.contains(document.activeElement)) {
+        first.focus();
+        e.preventDefault();
+      } else if (e.shiftKey && document.activeElement === first) {
+        last.focus();
+        e.preventDefault();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        first.focus();
+        e.preventDefault();
+      }
+    });
   }
 
   // ---------- i18n ----------
@@ -131,7 +161,7 @@ class App {
     if (!container) return;
 
     if (!providers.length) {
-      container.innerHTML = `<div class="empty-state-full">${escapeHtml(this.t('noProviders'))}</div>`;
+      container.innerHTML = `<div class="empty-state-full">${icon('dial')}<span>${escapeHtml(this.t('noProviders'))}</span></div>`;
       return;
     }
 
@@ -153,12 +183,12 @@ class App {
     const keyCount = provider.keys?.length || 0;
     const activeKeys = provider.keys?.filter(k => k.status === 'active').length || 0;
 
-    let body = `<div class="provider-body"><div class="no-keys" data-stop onclick="app.addKeyToProvider('${safeId}')">${escapeHtml(this.t('noKeysYet'))}</div></div>`;
+    let body = `<div class="provider-body"><button class="no-keys" data-stop onclick="app.addKeyToProvider('${safeId}')">${escapeHtml(this.t('noKeysYet'))}</button></div>`;
     if (keyCount > 0) {
       const previews = provider.keys.slice(0, 2).map(k =>
-        `<div class="key-preview" data-stop onclick="app.viewProvider('${safeId}')">${maskKey(k.key)}</div>`
+        `<button class="key-preview" data-stop onclick="app.viewProvider('${safeId}')">${maskKey(k.key)}</button>`
       ).join('');
-      const more = keyCount > 2 ? `<div class="key-preview">+${keyCount - 2} ${escapeHtml(this.t('more'))}</div>` : '';
+      const more = keyCount > 2 ? `<span class="key-preview more">+${keyCount - 2} ${escapeHtml(this.t('more'))}</span>` : '';
       body = `
         <div class="provider-body">
           <div class="provider-stats">
@@ -172,20 +202,21 @@ class App {
     const models = provider.models || [];
     const modelChips = models.length
       ? `<div class="card-models">${models.slice(0, 3).map(m =>
-          `<span class="model-chip" data-stop onclick="app.copyToClipboard('${escapeHtml(m).replace(/'/g, '&#39;')}')" title="${escapeHtml(this.t('toastCopied'))}">${escapeHtml(m)}</span>`
+          `<button class="model-chip" data-stop onclick="app.copyToClipboard('${escapeHtml(m).replace(/'/g, '&#39;')}')" title="${escapeHtml(this.t('toastCopied'))}">${escapeHtml(m)}</button>`
         ).join('')}${models.length > 3 ? `<span class="model-chip more">+${models.length - 3}</span>` : ''}</div>`
       : '';
 
+    const pinTitle = escapeHtml(provider.pinned ? this.t('unpin') : this.t('pin'));
     const pinBtn = `<button class="pin-btn ${provider.pinned ? 'pinned' : ''}" data-stop
-      onclick="app.togglePin('${safeId}')" title="${escapeHtml(provider.pinned ? this.t('unpin') : this.t('pin'))}">${provider.pinned ? '📌' : '📍'}</button>`;
+      onclick="app.togglePin('${safeId}')" title="${pinTitle}" aria-label="${pinTitle}">${icon(provider.pinned ? 'pin-filled' : 'pin')}</button>`;
 
     return `
       <div class="provider-card ${provider.pinned ? 'is-pinned' : ''}" data-provider="${safeId}">
         <div class="provider-header">
           ${getProviderIcon(provider)}
           <div class="provider-info">
-            <h3>${name} ${provider.pinned ? '<span class="pin-flag">📌</span>' : ''}</h3>
-            <span class="provider-base-url" data-stop onclick="app.copyToClipboard('${baseUrl.replace(/'/g, '&#39;')}')" title="${escapeHtml(this.t('copyBaseUrl'))}">${baseUrl} 📋</span>
+            <h3>${name} ${provider.pinned ? `<span class="pin-flag">${icon('pin-filled')}</span>` : ''}</h3>
+            <button class="provider-base-url" data-stop onclick="app.copyToClipboard('${baseUrl.replace(/'/g, '&#39;')}')" title="${escapeHtml(this.t('copyBaseUrl'))}" aria-label="${escapeHtml(this.t('copyBaseUrl'))}"><span class="url">${baseUrl}</span>${icon('copy')}</button>
           </div>
           ${pinBtn}
         </div>
@@ -248,14 +279,14 @@ class App {
     const baseUrl = escapeHtml(provider.base_url || '');
 
     const keysList = keys.length > 0 ? keys.map(k => {
-      const statusColor = getKeyStatusColor(k.status);
       const keyName = escapeHtml(k.name || this.t('unnamedKey'));
       const isEnc = isEncrypted(k.key);
-      const lockBadge = isEnc ? `<span class="key-lock" title="${escapeHtml(this.t('encryptedAtRest'))}">🔒</span>` : '';
+      const lockBadge = isEnc ? `<span class="key-lock" title="${escapeHtml(this.t('encryptedAtRest'))}">${icon('lock')}</span>` : '';
       const revealed = this.visibleKeys.has(Number(k.id));
       const keyValue = escapeHtml(revealed ? k.key : maskKey(k.key));
+      const eyeTitle = escapeHtml(revealed ? this.t('hideKey') : this.t('showKey'));
       const eyeBtn = `
-        <button class="icon-btn eye-btn" onclick="app.toggleKeyVisibility(${Number(k.id)})" title="${escapeHtml(revealed ? this.t('hideKey') : this.t('showKey'))}">${revealed ? '🙈' : '👁️'}</button>`;
+        <button class="icon-btn eye-btn${revealed ? ' revealed' : ''}" onclick="app.toggleKeyVisibility(${Number(k.id)})" title="${eyeTitle}" aria-label="${eyeTitle}">${icon(revealed ? 'eye-off' : 'eye')}</button>`;
       const notes = k.notes ? `<div class="key-notes">${escapeHtml(k.notes)}</div>` : '';
       const expiry = k.expiry ? `<div class="key-expiry">${escapeHtml(this.t('expires'))}: ${new Date(k.expiry).toLocaleDateString()}</div>` : '';
       return `
@@ -265,14 +296,14 @@ class App {
             <div class="key-value">${keyValue}</div>
             ${notes}${expiry}
           </div>
-          <div class="key-status" style="background: ${statusColor}20; color: ${statusColor}">${escapeHtml(k.status || 'active')}</div>
+          <span class="key-status st-${escapeHtml(k.status || 'active')}">${escapeHtml(k.status || 'active')}</span>
           ${eyeBtn}
-          <button class="icon-btn" onclick="app.testSingleKey(${Number(k.id)})" title="${escapeHtml(this.t('testThisKey'))}">🧪</button>
-          <button class="icon-btn" onclick="app.copyKey(${Number(k.id)})" title="${escapeHtml(this.t('copyKey'))}">📋</button>
-          <button class="icon-btn danger" onclick="app.deleteKey(${Number(k.id)})" title="${escapeHtml(this.t('deleteKey'))}">🗑️</button>
+          <button class="icon-btn" onclick="app.testSingleKey(${Number(k.id)})" title="${escapeHtml(this.t('testThisKey'))}" aria-label="${escapeHtml(this.t('testThisKey'))}">${icon('test')}</button>
+          <button class="icon-btn" onclick="app.copyKey(${Number(k.id)})" title="${escapeHtml(this.t('copyKey'))}" aria-label="${escapeHtml(this.t('copyKey'))}">${icon('copy')}</button>
+          <button class="icon-btn danger" onclick="app.deleteKey(${Number(k.id)})" title="${escapeHtml(this.t('deleteKey'))}" aria-label="${escapeHtml(this.t('deleteKey'))}">${icon('trash')}</button>
         </div>
       `;
-    }).join('') : `<div class="empty-state">${escapeHtml(this.t('noKeysForProvider'))}</div>`;
+    }).join('') : `<div class="empty-state">${icon('key')}<span>${escapeHtml(this.t('noKeysForProvider'))}</span></div>`;
 
     const models = provider.models || [];
     const modelsList = models.length > 0 ?
@@ -280,13 +311,13 @@ class App {
         <h4>${escapeHtml(this.t('models'))}</h4>
         <div class="models-tags">${models.map(m => {
           const model = escapeHtml(m);
-          return `<span class="model-tag" title="Click to copy" onclick="app.copyToClipboard('${model.replace(/'/g, '&#39;')}')">${model} 📋</span>`;
+          return `<button class="model-tag" title="${escapeHtml(this.t('toastCopied'))}" onclick="app.copyToClipboard('${model.replace(/'/g, '&#39;')}')">${model}</button>`;
         }).join('')}</div>
         <div class="actions-row">
           <button class="btn btn-secondary btn-sm" onclick="app.copyToClipboard('${baseUrl.replace(/'/g, '&#39;')}')">
-            ${escapeHtml(this.t('copyBaseUrl'))}
+            ${icon('copy')} ${escapeHtml(this.t('copyBaseUrl'))}
           </button>
-          ${provider.website ? `<button class="btn btn-secondary btn-sm" onclick="app.openWebsite('${escapeHtml(provider.website).replace(/'/g, '&#39;')}')">${escapeHtml(this.t('website'))}</button>` : ''}
+          ${provider.website ? `<button class="btn btn-secondary btn-sm" onclick="app.openWebsite('${escapeHtml(provider.website).replace(/'/g, '&#39;')}')">${icon('link')} ${escapeHtml(this.t('website'))}</button>` : ''}
         </div>
       </div>` : '';
 
@@ -296,7 +327,7 @@ class App {
           ${getProviderIcon(provider)}
           <div class="provider-detail-info">
             <h2>${name}</h2>
-            <span class="provider-detail-base" onclick="app.copyToClipboard('${baseUrl.replace(/'/g, '&#39;')}')" title="Click to copy base URL" style="cursor: pointer;">${baseUrl} 📋</span>
+            <button class="provider-detail-base" onclick="app.copyToClipboard('${baseUrl.replace(/'/g, '&#39;')}')" title="${escapeHtml(this.t('copyBaseUrl'))}" aria-label="${escapeHtml(this.t('copyBaseUrl'))}"><span class="url">${baseUrl}</span>${icon('copy')}</button>
           </div>
         </div>
 
@@ -306,12 +337,12 @@ class App {
           <div class="keys-header">
             <h3>${escapeHtml(this.t('apiKeys'))} (${keys.length})</h3>
             <div>
-              ${keys.length > 0 ? `<button class="btn btn-secondary btn-sm" onclick="app.openKeyTester('${safeId}')">${escapeHtml(this.t('testAllKeys'))}</button>` : ''}
+              ${keys.length > 0 ? `<button class="btn btn-secondary btn-sm" onclick="app.openKeyTester('${safeId}')">${icon('test')} ${escapeHtml(this.t('testAllKeys'))}</button>` : ''}
               <button class="btn btn-primary btn-sm" onclick="app.addKeyToProvider('${safeId}')">
-                ${escapeHtml(this.t('addKey'))}
+                ${icon('plus')} ${escapeHtml(this.t('addKey'))}
               </button>
               <button class="btn btn-secondary btn-sm" onclick="app.deleteProvider('${safeId}')">
-                ${escapeHtml(this.t('deleteProvider'))}
+                ${icon('trash')} ${escapeHtml(this.t('deleteProvider'))}
               </button>
             </div>
           </div>
@@ -384,7 +415,7 @@ class App {
       this.showToast(this.t('toastProviderUpdated'));
     } catch (err) {
       console.error('Error updating provider:', err);
-      this.showToast(this.t('toastProviderUpdated'), 'error');
+      this.showToast(this.t('toastUpdateFailed'), 'error');
     }
   }
 
@@ -506,7 +537,7 @@ class App {
 
     const { providers, keys } = await this.providerManager.getTrash();
     if (!providers.length && !keys.length) {
-      list.innerHTML = `<div class="empty-state">${escapeHtml(this.t('trashEmpty'))}</div>`;
+      list.innerHTML = `<div class="empty-state">${icon('trash')}<span>${escapeHtml(this.t('trashEmpty'))}</span></div>`;
       return;
     }
 
@@ -519,7 +550,7 @@ class App {
             <div class="trash-name">${escapeHtml(p.name || p.id)}</div>
             <div class="trash-date">${p.deleted_at ? new Date(p.deleted_at).toLocaleString() : ''}</div>
           </div>
-          <button class="btn btn-secondary btn-sm" onclick="app.restoreProvider('${escapeHtml(p.id)}')">♻️ ${escapeHtml(this.t('restore'))}</button>
+          <button class="btn btn-secondary btn-sm" onclick="app.restoreProvider('${escapeHtml(p.id)}')">${icon('restore')} ${escapeHtml(this.t('restore'))}</button>
           <button class="btn btn-danger btn-sm" onclick="app.purgeProvider('${escapeHtml(p.id)}')">${escapeHtml(this.t('deleteForever'))}</button>
         </div>
       `).join('')}` : '';
@@ -528,12 +559,12 @@ class App {
       <h4 class="trash-section-title">${escapeHtml(this.t('deletedKeys'))} (${keys.length})</h4>
       ${keys.map(k => `
         <div class="trash-item">
-          <div class="provider-icon-placeholder">🔑</div>
+          <div class="provider-icon-placeholder">${icon('key')}</div>
           <div class="trash-info">
             <div class="trash-name">${escapeHtml(k.name || this.t('unnamedKey'))}</div>
             <div class="trash-date">${k.deleted_at ? new Date(k.deleted_at).toLocaleString() : ''}</div>
           </div>
-          <button class="btn btn-secondary btn-sm" onclick="app.restoreKey(${Number(k.id)})">♻️ ${escapeHtml(this.t('restore'))}</button>
+          <button class="btn btn-secondary btn-sm" onclick="app.restoreKey(${Number(k.id)})">${icon('restore')} ${escapeHtml(this.t('restore'))}</button>
           <button class="btn btn-danger btn-sm" onclick="app.purgeKey(${Number(k.id)})">${escapeHtml(this.t('deleteForever'))}</button>
         </div>
       `).join('')}` : '';
@@ -594,12 +625,12 @@ class App {
       <div class="form-group keytest-controls">
         <label>${escapeHtml(this.t('testModel'))}</label>
         <select id="keyTestModel">
-          <option value="">—</option>
+          <option value="">${escapeHtml(this.t('modelAuto'))}</option>
           ${modelOptions}
         </select>
       </div>
       <div class="keytest-actions">
-        <button class="btn btn-primary" onclick="app.runBulkKeyTest('${escapeHtml(providerId)}')">${escapeHtml(this.t('testAll'))} (${keys.length})</button>
+        <button class="btn btn-primary" onclick="app.runBulkKeyTest('${escapeHtml(providerId)}')">${icon('test')} ${escapeHtml(this.t('testAll'))} (${keys.length})</button>
       </div>
       <div id="keyTestResults" class="keytest-results">
         <p class="form-hint">${escapeHtml(this.t('corsHint'))}</p>
@@ -620,7 +651,7 @@ class App {
     results.innerHTML = `
       <div class="keytest-row testing-row" id="singleTestRow">
         <span class="keytest-name">${escapeHtml(key.name || this.t('unnamedKey'))}</span>
-        <span class="keytest-status pending">⏳ ${escapeHtml(this.t('testing'))}</span>
+        <span class="keytest-status pending"><span class="keytest-spinner" aria-hidden="true"></span>${escapeHtml(this.t('testing'))}</span>
       </div>`;
 
     const result = await testKey(provider, key);
@@ -629,7 +660,7 @@ class App {
       row.className = `keytest-row ${result.ok ? 'pass' : 'fail'}`;
       row.innerHTML = `
         <span class="keytest-name">${escapeHtml(key.name || this.t('unnamedKey'))}</span>
-        <span class="keytest-status ${result.ok ? 'pass' : 'fail'}">${result.ok ? '✅' : '❌'} ${escapeHtml(result.detail)} <small>${result.ms}ms</small></span>`;
+        <span class="keytest-status ${result.ok ? 'pass' : 'fail'}">${icon(result.ok ? 'check' : 'x')} ${escapeHtml(result.detail)} <small>${result.ms}ms</small></span>`;
     }
   }
 
@@ -645,7 +676,7 @@ class App {
     results.innerHTML = keys.map(k => `
       <div class="keytest-row testing-row" id="test-row-${Number(k.id)}">
         <span class="keytest-name">${escapeHtml(k.name || this.t('unnamedKey'))}</span>
-        <span class="keytest-status pending">⏳ ${escapeHtml(this.t('testing'))}</span>
+        <span class="keytest-status pending"><span class="keytest-spinner" aria-hidden="true"></span>${escapeHtml(this.t('testing'))}</span>
       </div>`).join('');
 
     await testAllKeys(provider, keys, {
@@ -656,7 +687,7 @@ class App {
         row.className = `keytest-row ${r.ok ? 'pass' : 'fail'}`;
         row.innerHTML = `
           <span class="keytest-name">${escapeHtml(r.keyName || this.t('unnamedKey'))}</span>
-          <span class="keytest-status ${r.ok ? 'pass' : 'fail'}">${r.ok ? '✅' : '❌'} ${escapeHtml(r.detail)} <small>${r.ms}ms</small></span>`;
+          <span class="keytest-status ${r.ok ? 'pass' : 'fail'}">${icon(r.ok ? 'check' : 'x')} ${escapeHtml(r.detail)} <small>${r.ms}ms</small></span>`;
       }
     });
   }
@@ -701,7 +732,7 @@ class App {
 
   // ---------- Backup (encrypted or plain) ----------
 
-  /** 💾 button opens the encrypted-backup flow. */
+  /** Download button opens the encrypted-backup flow. */
   async downloadData() {
     const form = document.getElementById('formBackup');
     form.reset();

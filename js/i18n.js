@@ -13,10 +13,11 @@ export const TRANSLATIONS = {
 
     // Main
     yourProviders: 'Your API Providers',
-    addProvider: '+ Add Provider',
-    browseDirectory: '🧭 Browse directory',
+    addProvider: 'Add Provider',
+    browseDirectory: 'Browse directory',
     noProviders: 'No providers. Add one to get started!',
     loading: 'Loading...',
+    privacyNote: 'All data stays locally in your browser. Nothing is sent to any server.',
 
     // Filters & sorting
     filterAll: 'All',
@@ -49,32 +50,33 @@ export const TRANSLATIONS = {
     // Key tester
     keyTestTitle: 'Test API Keys',
     testKey: 'Test',
-    testAllKeys: '🧪 Test all keys',
+    testAllKeys: 'Test all keys',
     testThisKey: 'Test this key',
     testing: 'Testing…',
     keyValid: 'Key is valid',
     keyInvalid: 'Invalid key',
     testModel: 'Model (optional)',
+    modelAuto: 'Auto',
     testAll: 'Test all',
     testResults: 'Results',
-    corsHint: 'Note: some providers block browser (CORS) requests — a network error does not always mean the key is bad.',
+    corsHint: 'Note: some providers block browser (CORS) requests; a network error does not always mean the key is bad.',
 
     // Provider card
-    noKeysYet: 'No keys yet →',
+    noKeysYet: 'No keys yet',
     active: 'active',
     total: 'Total',
     more: 'more',
 
     // Provider detail
     providerDetails: 'Provider Details',
-    edit: '✏️ Edit',
+    edit: 'Edit',
     apiKeys: 'API Keys',
-    addKey: '+ Add Key',
-    deleteProvider: '🗑️ Delete Provider',
+    addKey: 'Add Key',
+    deleteProvider: 'Delete Provider',
     noKeysForProvider: 'No keys for this provider',
     models: 'Models',
-    copyBaseUrl: '📋 Copy Base URL',
-    website: '🔗 Website',
+    copyBaseUrl: 'Copy Base URL',
+    website: 'Website',
     copyKey: 'Copy key',
     deleteKey: 'Delete key',
     expires: 'Expires',
@@ -128,7 +130,7 @@ export const TRANSLATIONS = {
     themeLight: 'Light',
     themeSystem: 'System',
     autoSave: 'Auto-save on changes',
-    encryptKeys: '🔒 Encrypt API keys (master password)',
+    encryptKeys: 'Encrypt API keys (master password)',
     save: 'Save',
 
     encryptionTitle: 'Encryption',
@@ -136,21 +138,21 @@ export const TRANSLATIONS = {
     masterPasswordPh: 'Min 8 characters',
     confirmPassword: 'Confirm password *',
     confirmPasswordPh: 'Repeat password',
-    warningNoReset: '⚠️ If you forget this password, encrypted keys cannot be recovered. There is no reset.',
+    warningNoReset: 'If you forget this password, encrypted keys cannot be recovered. There is no reset.',
     enableEncryption: 'Enable encryption',
     unlock: 'Unlock',
     disableEncryption: 'Disable encryption',
-    encryptStatusOff: '○ Encryption is off — keys are stored in plain text.',
-    encryptStatusUnlocked: '● Unlocked — {n}/{t} keys encrypted.',
-    encryptStatusLocked: '🔒 Locked — {n}/{t} keys encrypted. Enter password to unlock.',
+    encryptStatusOff: '○ Encryption is off: keys are stored in plain text.',
+    encryptStatusUnlocked: '● Unlocked: {n}/{t} keys encrypted.',
+    encryptStatusLocked: '● Locked: {n}/{t} keys encrypted. Enter password to unlock.',
 
     // Backup encryption
     backupTitle: 'Encrypted Backup',
     backupPassword: 'Backup password *',
     backupPasswordHint: 'Used to encrypt the backup file. The master password is used by default.',
-    downloadEncrypted: '🔒 Download encrypted backup',
+    downloadEncrypted: 'Download encrypted backup',
     downloadPlain: 'Download plain JSON',
-    importEncrypted: 'Encrypted backup file — enter its password:',
+    importEncrypted: 'Encrypted backup file, enter its password:',
 
     // Toasts
     toastLoaded: 'API Key Manager loaded',
@@ -172,8 +174,8 @@ export const TRANSLATIONS = {
     toastPwMismatch: 'Passwords do not match',
     toastWrongPw: 'Wrong password',
     toastEncrypting: 'Encrypting keys…',
-    toastEncEnabled: 'Encryption enabled — {n} key(s) encrypted',
-    toastEncDisabled: 'Encryption disabled — {n} key(s) decrypted',
+    toastEncEnabled: 'Encryption enabled: {n} key(s) encrypted',
+    toastEncDisabled: 'Encryption disabled: {n} key(s) decrypted',
     toastEncUnlocked: 'Encryption unlocked',
     toastEncFail: 'Failed to enable encryption',
     toastDecryptFail: 'Failed to decrypt',
@@ -181,6 +183,7 @@ export const TRANSLATIONS = {
     toastBackupDecrypted: 'Backup decrypted',
     toastAddedProvider: '{name} added',
     toastAlreadyExists: 'Provider already exists',
+    toastUpdateFailed: 'Update failed',
 
     // Confirms
     confirmDeleteKey: 'Delete this key?',
@@ -199,10 +202,11 @@ export const TRANSLATIONS = {
     settings: 'تنظیمات',
 
     yourProviders: 'پرووایدرهای شما',
-    addProvider: '+ افزودن پرووایدر',
-    browseDirectory: '🧭 فهرست پرووایدرها',
+    addProvider: 'افزودن پرووایدر',
+    browseDirectory: 'فهرست پرووایدرها',
     noProviders: 'هنوز پرووایدری نیست. یکی اضافه کنید!',
     loading: 'در حال بارگذاری...',
+    privacyNote: 'همه داده‌ها در مرورگر شما می‌مانند. هیچ چیزی به هیچ سروری ارسال نمی‌شود.',
 
     filterAll: 'همه',
     filterPinned: 'پین‌شده',
@@ -232,30 +236,31 @@ export const TRANSLATIONS = {
 
     keyTestTitle: 'تست کلیدهای API',
     testKey: 'تست',
-    testAllKeys: '🧪 تست همه کلیدها',
+    testAllKeys: 'تست همه کلیدها',
     testThisKey: 'تست این کلید',
     testing: 'در حال تست…',
     keyValid: 'کلید معتبر است',
     keyInvalid: 'کلید نامعتبر',
     testModel: 'مدل (اختیاری)',
+    modelAuto: 'خودکار',
     testAll: 'تست همه',
     testResults: 'نتایج',
-    corsHint: 'توجه: بعضی پرووایدرها درخواست مرورگر (CORS) را مسدود می‌کنند — خطای شبکه همیشه به معنای بد بودن کلید نیست.',
+    corsHint: 'توجه: بعضی پرووایدرها درخواست مرورگر (CORS) را مسدود می‌کنند؛ خطای شبکه همیشه به معنای بد بودن کلید نیست.',
 
-    noKeysYet: 'هنوز کلیدی نیست →',
+    noKeysYet: 'هنوز کلیدی نیست',
     active: 'فعال',
     total: 'کل',
     more: 'بیشتر',
 
     providerDetails: 'جزئیات پرووایدر',
-    edit: '✏️ ویرایش',
+    edit: 'ویرایش',
     apiKeys: 'کلیدهای API',
-    addKey: '+ افزودن کلید',
-    deleteProvider: '🗑️ حذف پرووایدر',
+    addKey: 'افزودن کلید',
+    deleteProvider: 'حذف پرووایدر',
     noKeysForProvider: 'کلیدی برای این پرووایدر نیست',
     models: 'مدل‌ها',
-    copyBaseUrl: '📋 کپی Base URL',
-    website: '🔗 وب‌سایت',
+    copyBaseUrl: 'کپی Base URL',
+    website: 'وب‌سایت',
     copyKey: 'کپی کلید',
     deleteKey: 'حذف کلید',
     expires: 'انقضا',
@@ -308,7 +313,7 @@ export const TRANSLATIONS = {
     themeLight: 'روشن',
     themeSystem: 'سیستم',
     autoSave: 'ذخیره خودکار تغییرات',
-    encryptKeys: '🔒 رمزنگاری کلیدها (رمز اصلی)',
+    encryptKeys: 'رمزنگاری کلیدها (رمز اصلی)',
     save: 'ذخیره',
 
     encryptionTitle: 'رمزنگاری',
@@ -316,20 +321,20 @@ export const TRANSLATIONS = {
     masterPasswordPh: 'حداقل ۸ کاراکتر',
     confirmPassword: 'تکرار رمز *',
     confirmPasswordPh: 'رمز را دوباره وارد کنید',
-    warningNoReset: '⚠️ اگر این رمز را فراموش کنید، کلیدهای رمزنگاری‌شده قابل بازیابی نیستند. راه بازیابی وجود ندارد.',
+    warningNoReset: 'اگر این رمز را فراموش کنید، کلیدهای رمزنگاری‌شده قابل بازیابی نیستند. راه بازیابی وجود ندارد.',
     enableEncryption: 'فعال‌سازی رمزنگاری',
     unlock: 'باز کردن قفل',
     disableEncryption: 'غیرفعال‌سازی رمزنگاری',
-    encryptStatusOff: '○ رمزنگاری خاموش است — کلیدها به‌صورت متن ساده ذخیره می‌شوند.',
-    encryptStatusUnlocked: '● باز شده — {n}/{t} کلید رمزنگاری شده.',
-    encryptStatusLocked: '🔒 قفل — {n}/{t} کلید رمزنگاری شده. رمز را وارد کنید.',
+    encryptStatusOff: '○ رمزنگاری خاموش است: کلیدها به‌صورت متن ساده ذخیره می‌شوند.',
+    encryptStatusUnlocked: '● باز شده: {n}/{t} کلید رمزنگاری شده.',
+    encryptStatusLocked: '● قفل: {n}/{t} کلید رمزنگاری شده. رمز را وارد کنید.',
 
     backupTitle: 'بکاپ رمزنگاری‌شده',
     backupPassword: 'رمز بکاپ *',
     backupPasswordHint: 'برای رمزنگاری فایل بکاپ استفاده می‌شود. به‌طور پیش‌فرض رمز اصلی به‌کار می‌رود.',
-    downloadEncrypted: '🔒 دانلود بکاپ رمزنگاری‌شده',
+    downloadEncrypted: 'دانلود بکاپ رمزنگاری‌شده',
     downloadPlain: 'دانلود JSON ساده',
-    importEncrypted: 'فایل بکاپ رمزنگاری‌شده — رمز آن را وارد کنید:',
+    importEncrypted: 'فایل بکاپ رمزنگاری‌شده، رمز آن را وارد کنید:',
 
     toastLoaded: 'مدیریت کلید API بارگذاری شد',
     toastKeyAdded: 'کلید اضافه شد',
@@ -350,8 +355,8 @@ export const TRANSLATIONS = {
     toastPwMismatch: 'رمزها یکسان نیستند',
     toastWrongPw: 'رمز اشتباه است',
     toastEncrypting: 'در حال رمزنگاری کلیدها…',
-    toastEncEnabled: 'رمزنگاری فعال شد — {n} کلید رمزنگاری شد',
-    toastEncDisabled: 'رمزنگاری غیرفعال شد — {n} کلید رمزگشایی شد',
+    toastEncEnabled: 'رمزنگاری فعال شد: {n} کلید رمزنگاری شد',
+    toastEncDisabled: 'رمزنگاری غیرفعال شد: {n} کلید رمزگشایی شد',
     toastEncUnlocked: 'قفل رمزنگاری باز شد',
     toastEncFail: 'فعال‌سازی رمزنگاری ناموفق بود',
     toastDecryptFail: 'رمزگشایی ناموفق بود',
@@ -359,6 +364,7 @@ export const TRANSLATIONS = {
     toastBackupDecrypted: 'بکاپ رمزگشایی شد',
     toastAddedProvider: '{name} اضافه شد',
     toastAlreadyExists: 'پرووایدر از قبل وجود دارد',
+    toastUpdateFailed: 'به‌روزرسانی ناموفق بود',
 
     confirmDeleteKey: 'این کلید حذف شود؟',
     confirmDeleteProvider: 'پرووایدر «{name}» و همه کلیدهایش حذف شود؟',
@@ -422,6 +428,7 @@ export class I18n {
     });
     root.querySelectorAll('[data-i18n-title]').forEach(el => {
       el.title = this.t(el.dataset.i18nTitle);
+      el.setAttribute('aria-label', this.t(el.dataset.i18nTitle));
     });
   }
 

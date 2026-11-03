@@ -359,16 +359,6 @@ export const maskKey = (key) => {
   return key.slice(0, 6) + '•'.repeat(Math.min(key.length - 10, 24)) + key.slice(-4);
 };
 
-export const getKeyStatusColor = (status) => {
-  const colors = {
-    active: '#22c55e',
-    inactive: '#94a3b8',
-    expired: '#ef4444',
-    revoked: '#f59e0b'
-  };
-  return colors[status] || '#94a3b8';
-};
-
 export function getProviderIcon(provider) {
   const initials = escapeHtml((provider.name || 'P').charAt(0).toUpperCase());
   const bg = getProviderColor(provider.id);

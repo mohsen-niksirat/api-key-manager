@@ -100,7 +100,7 @@ export async function interpretResponse(response) {
     return { ok: true, status, detail: 'Key valid but out of quota/credit' };
   }
   if (status >= 500) {
-    return { ok: true, status, detail: 'Provider server error — key likely valid' };
+    return { ok: true, status, detail: 'Provider server error: key likely valid' };
   }
 
   return { ok: false, status, detail: 'HTTP ' + status };
