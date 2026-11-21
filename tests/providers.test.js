@@ -80,5 +80,33 @@ export const tests = {
     const a = pm.generateId('My Cool API!');
     assertIncludes(a, 'my-cool-api', 'slug part');
     assert(!/[^a-z0-9-]/.test(a), 'id must be URL-safe');
+  },
+
+  async 'renderProviderCard and renderProviderDetail emit no inline onclick for quote-bearing payloads'() {
+    const { App } = await import('../js/app.js');
+    const app = new App();
+    const xssModel = "x');window.__xss=1;//";
+    const xssBaseUrl = "https://api.example.com/v1'xss";
+    const xssWebsite = "https://example.com/'xss";
+    const provider = {
+      id: "prov'1",
+      name: 'XSS Test',
+      base_url: xssBaseUrl,
+      website: xssWebsite,
+      models: [xssModel],
+      pinned: true,
+      keys: [{ id: 42, name: 'k1', key: 'sk-1234567890abcdef', status: 'active' }]
+    };
+
+    const cardHtml = app.renderProviderCard(provider);
+    assert(!cardHtml.includes('onclick'), 'card HTML must not contain inline onclick');
+    assertIncludes(cardHtml, 'data-action="copy" data-value="x&#39;);window.__xss=1;//"');
+    assertIncludes(cardHtml, 'data-action="copy" data-value="https://api.example.com/v1&#39;xss"');
+
+    const detailHtml = app.renderProviderDetail(provider, provider.keys);
+    assert(!detailHtml.includes('onclick'), 'detail HTML must not contain inline onclick');
+    assertIncludes(detailHtml, 'data-action="copy" data-value="x&#39;);window.__xss=1;//"');
+    assertIncludes(detailHtml, 'data-action="open-website" data-url="https://example.com/&#39;xss"');
+    assertIncludes(detailHtml, 'data-action="copy-key" data-key-id="42"');
   }
 };

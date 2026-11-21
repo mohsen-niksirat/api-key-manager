@@ -42,7 +42,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg> <span data-i18n="encryptionTitle">Encryption</span></h3>
-        <button class="modal-close" onclick="app.closeModal('modalEncrypt')" data-i18n-title="close" title="Close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+        <button class="modal-close" data-action="close-modal" data-modal="modalEncrypt" data-i18n-title="close" title="Close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
       </div>
       <div id="encryptStatus" class="encrypt-status"></div>
       <form id="formEncryptSetup" onsubmit="event.preventDefault(); app.setupEncryption()">
@@ -56,7 +56,7 @@
         </div>
         <p class="form-hint warning" data-i18n="warningNoReset">If you forget this password, encrypted keys cannot be recovered.</p>
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalEncrypt')" data-i18n="cancel">Cancel</button>
+          <button type="button" class="btn btn-secondary" data-action="close-modal" data-modal="modalEncrypt" data-i18n="cancel">Cancel</button>
           <button type="submit" class="btn btn-primary" data-i18n="enableEncryption">Enable encryption</button>
         </div>
       </form>
@@ -66,13 +66,13 @@
           <input type="password" name="password" data-i18n-placeholder="masterPasswordPh" placeholder="Master password" required autocomplete="current-password" />
         </div>
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalEncrypt')" data-i18n="cancel">Cancel</button>
+          <button type="button" class="btn btn-secondary" data-action="close-modal" data-modal="modalEncrypt" data-i18n="cancel">Cancel</button>
           <button type="submit" class="btn btn-primary" data-i18n="unlock">Unlock</button>
         </div>
       </form>
       <div class="form-actions" id="encryptActions" hidden>
-        <button class="btn btn-secondary btn-sm" onclick="app.closeModal('modalEncrypt')" data-i18n="close">Close</button>
-        <button class="btn btn-danger btn-sm" onclick="app.disableEncryption()" data-i18n="disableEncryption">Disable encryption</button>
+        <button class="btn btn-secondary btn-sm" data-action="close-modal" data-modal="modalEncrypt" data-i18n="close">Close</button>
+        <button class="btn btn-danger btn-sm" data-action="disable-encryption" data-i18n="disableEncryption">Disable encryption</button>
       </div>
     </div>
   </div>
@@ -145,7 +145,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3 data-i18n="addProviderTitle">Add Provider</h3>
-        <button class="modal-close" onclick="app.closeModal('modalAddProvider')" data-i18n-title="close" title="Close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+        <button class="modal-close" data-action="close-modal" data-modal="modalAddProvider" data-i18n-title="close" title="Close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
       </div>
       <form onsubmit="event.preventDefault(); app.saveProvider()">
         <div class="form-group">
@@ -169,7 +169,7 @@
           <input type="url" name="logo" data-i18n-placeholder="logoPh" placeholder="https://example.com/logo.png" />
         </div>
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalAddProvider')" data-i18n="cancel">Cancel</button>
+          <button type="button" class="btn btn-secondary" data-action="close-modal" data-modal="modalAddProvider" data-i18n="cancel">Cancel</button>
           <button type="submit" class="btn btn-primary" data-i18n="saveProvider">Save Provider</button>
         </div>
       </form>
@@ -181,7 +181,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3 data-i18n="addKeyTitle">Add API Key</h3>
-        <button class="modal-close" onclick="app.closeModal('modalAddKey')" data-i18n-title="close" title="Close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+        <button class="modal-close" data-action="close-modal" data-modal="modalAddKey" data-i18n-title="close" title="Close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
       </div>
       <form onsubmit="event.preventDefault(); app.saveKey()">
         <div class="form-group">
@@ -197,7 +197,7 @@
           <input type="date" name="expiry" />
         </div>
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalAddKey')" data-i18n="cancel">Cancel</button>
+          <button type="button" class="btn btn-secondary" data-action="close-modal" data-modal="modalAddKey" data-i18n="cancel">Cancel</button>
           <button type="submit" class="btn btn-primary" data-i18n="saveKey">Save Key</button>
         </div>
       </form>
@@ -209,8 +209,8 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3 data-i18n="providerDetails">Provider Details</h3>
-        <button class="edit-mode-toggle" id="editModeToggle" onclick="app.toggleEditMode()" data-i18n="edit">Edit</button>
-        <button class="modal-close" onclick="app.closeModal('modalProviderDetail')" data-i18n-title="close" title="Close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+        <button class="edit-mode-toggle" id="editModeToggle" data-action="toggle-edit-mode" data-i18n="edit">Edit</button>
+        <button class="modal-close" data-action="close-modal" data-modal="modalProviderDetail" data-i18n-title="close" title="Close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
       </div>
       <div class="modal-body">
       </div>
@@ -222,15 +222,15 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3 data-i18n="exportTitle">Export Data</h3>
-        <button class="modal-close" onclick="app.closeModal('modalExport')" data-i18n-title="close" title="Close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+        <button class="modal-close" data-action="close-modal" data-modal="modalExport" data-i18n-title="close" title="Close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
       </div>
       <div class="form-group">
         <label data-i18n="exportedJson">Exported JSON</label>
         <textarea readonly rows="10" id="exportTextarea"></textarea>
       </div>
       <div class="form-actions">
-        <button class="btn btn-secondary" onclick="app.closeModal('modalExport')" data-i18n="close">Close</button>
-        <button class="btn btn-primary" onclick="app.copyExport()" data-i18n="copyToClipboard">Copy to clipboard</button>
+        <button class="btn btn-secondary" data-action="close-modal" data-modal="modalExport" data-i18n="close">Close</button>
+        <button class="btn btn-primary" data-action="copy-export" data-i18n="copyToClipboard">Copy to clipboard</button>
       </div>
     </div>
   </div>
@@ -240,7 +240,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg> <span data-i18n="backupTitle">Encrypted Backup</span></h3>
-        <button class="modal-close" onclick="app.closeModal('modalBackup')" data-i18n-title="close" title="Close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+        <button class="modal-close" data-action="close-modal" data-modal="modalBackup" data-i18n-title="close" title="Close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
       </div>
       <div id="backupDecryptSection" hidden>
         <div class="form-group">
@@ -248,8 +248,8 @@
           <input type="password" id="backupDecryptPassword" autocomplete="off" />
         </div>
         <div class="form-actions">
-          <button class="btn btn-secondary" onclick="app.cancelEncryptedImport()" data-i18n="cancel">Cancel</button>
-          <button class="btn btn-primary" onclick="app.confirmEncryptedImport()" data-i18n="unlock">Unlock</button>
+          <button class="btn btn-secondary" data-action="cancel-encrypted-import" data-i18n="cancel">Cancel</button>
+          <button class="btn btn-primary" data-action="confirm-encrypted-import" data-i18n="unlock">Unlock</button>
         </div>
       </div>
       <form id="formBackup" onsubmit="event.preventDefault(); app.downloadEncryptedBackup()">
@@ -259,8 +259,8 @@
         </div>
         <p class="form-hint" data-i18n="backupPasswordHint">Used to encrypt the backup file.</p>
         <div class="form-actions backup-actions">
-          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalBackup')" data-i18n="cancel">Cancel</button>
-          <button type="button" class="btn btn-secondary" onclick="app.downloadPlainBackup()" data-i18n="downloadPlain">Plain JSON</button>
+          <button type="button" class="btn btn-secondary" data-action="close-modal" data-modal="modalBackup" data-i18n="cancel">Cancel</button>
+          <button type="button" class="btn btn-secondary" data-action="download-plain-backup" data-i18n="downloadPlain">Plain JSON</button>
           <button type="submit" class="btn btn-primary" data-i18n="downloadEncrypted">Download encrypted</button>
         </div>
       </form>
@@ -272,7 +272,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3><svg class="icon" aria-hidden="true"><use href="#i-compass"/></svg> <span data-i18n="directoryTitle">Provider Directory</span></h3>
-        <button class="modal-close" onclick="app.closeModal('modalDirectory')" data-i18n-title="close" title="Close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+        <button class="modal-close" data-action="close-modal" data-modal="modalDirectory" data-i18n-title="close" title="Close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
       </div>
       <div class="form-group directory-search">
         <input type="search" id="directorySearch" data-i18n-placeholder="filterDirectory" placeholder="Filter directory..." autocomplete="off" />
@@ -288,7 +288,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3 data-i18n="editProviderTitle">Edit Provider</h3>
-        <button class="modal-close" onclick="app.closeModal('modalEditProvider')" data-i18n-title="close" title="Close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+        <button class="modal-close" data-action="close-modal" data-modal="modalEditProvider" data-i18n-title="close" title="Close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
       </div>
       <form onsubmit="event.preventDefault(); app.saveProviderEdits()">
         <div class="form-group">
@@ -312,7 +312,7 @@
           <input type="url" name="logo" />
         </div>
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalEditProvider')" data-i18n="cancel">Cancel</button>
+          <button type="button" class="btn btn-secondary" data-action="close-modal" data-modal="modalEditProvider" data-i18n="cancel">Cancel</button>
           <button type="submit" class="btn btn-primary" data-i18n="saveChanges">Save Changes</button>
         </div>
       </form>
@@ -324,12 +324,12 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg> <span data-i18n="trashTitle">Recycle Bin</span></h3>
-        <button class="modal-close" onclick="app.closeModal('modalTrash')" data-i18n-title="close" title="Close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+        <button class="modal-close" data-action="close-modal" data-modal="modalTrash" data-i18n-title="close" title="Close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
       </div>
       <div id="trashList" class="trash-list"></div>
       <div class="form-actions">
-        <button class="btn btn-secondary" onclick="app.closeModal('modalTrash')" data-i18n="close">Close</button>
-        <button class="btn btn-danger" onclick="app.emptyTrash()" data-i18n="emptyTrash">Empty bin</button>
+        <button class="btn btn-secondary" data-action="close-modal" data-modal="modalTrash" data-i18n="close">Close</button>
+        <button class="btn btn-danger" data-action="empty-trash" data-i18n="emptyTrash">Empty bin</button>
       </div>
     </div>
   </div>
@@ -339,7 +339,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3><svg class="icon" aria-hidden="true"><use href="#i-test"/></svg> <span data-i18n="keyTestTitle">Test API Keys</span></h3>
-        <button class="modal-close" onclick="app.closeModal('modalKeyTest')" data-i18n-title="close" title="Close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+        <button class="modal-close" data-action="close-modal" data-modal="modalKeyTest" data-i18n-title="close" title="Close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
       </div>
       <div id="keyTestBody" class="keytest-body"></div>
     </div>
@@ -350,7 +350,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3 data-i18n="settingsTitle">Settings</h3>
-        <button class="modal-close" onclick="app.closeModal('modalSettings')" data-i18n-title="close" title="Close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+        <button class="modal-close" data-action="close-modal" data-modal="modalSettings" data-i18n-title="close" title="Close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
       </div>
       <form onsubmit="event.preventDefault(); app.saveSettings()">
         <div class="form-group">
@@ -376,12 +376,12 @@
         </div>
         <div class="form-group">
           <label class="checkbox-label">
-            <input type="checkbox" id="encryptToggle" onclick="app.toggleEncryptFromSettings(this)" />
+            <input type="checkbox" id="encryptToggle" data-action="toggle-encrypt-settings" />
             <span data-i18n="encryptKeys">Encrypt API keys (master password)</span>
           </label>
         </div>
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalSettings')" data-i18n="close">Close</button>
+          <button type="button" class="btn btn-secondary" data-action="close-modal" data-modal="modalSettings" data-i18n="close">Close</button>
           <button type="submit" class="btn btn-primary" data-i18n="save">Save</button>
         </div>
       </form>

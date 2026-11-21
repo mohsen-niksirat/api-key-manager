@@ -17,7 +17,7 @@ const BACKUP_PREFIX = 'AKM-ENCRYPTED-BACKUP:v1:';
 /** Inline SVG icon from the sprite defined in index.html. */
 const icon = (name, cls = 'icon') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 
-class App {
+export class App {
   constructor() {
     this.storage = new APIKeyStorage();
     this.providerManager = new ProviderManager(this.storage);
@@ -91,10 +91,95 @@ class App {
       });
     });
 
-    // Global delegated handlers for inline onclick fallbacks (event.stopPropagation)
-    window.addEventListener('click', (e) => {
+    // Global delegated handlers for data-action and [data-stop]
+    document.addEventListener('click', (e) => {
       const stopper = e.target.closest('[data-stop]');
       if (stopper) e.stopPropagation();
+
+      const actionEl = e.target.closest('[data-action]');
+      if (!actionEl) return;
+
+      const { action, id, keyId, value, url, modal } = actionEl.dataset;
+      switch (action) {
+        case 'copy':
+          this.copyToClipboard(value ?? '');
+          break;
+        case 'view':
+          this.viewProvider(id);
+          break;
+        case 'add-key':
+          this.addKeyToProvider(id);
+          break;
+        case 'toggle-pin':
+          this.togglePin(id);
+          break;
+        case 'open-website':
+          this.openWebsite(url);
+          break;
+        case 'open-key-tester':
+          this.openKeyTester(id);
+          break;
+        case 'delete-provider':
+          this.deleteProvider(id);
+          break;
+        case 'restore-provider':
+          this.restoreProvider(id);
+          break;
+        case 'purge-provider':
+          this.purgeProvider(id);
+          break;
+        case 'run-bulk-key-test':
+          this.runBulkKeyTest(id);
+          break;
+        case 'add-from-directory':
+          this.addFromDirectory(id);
+          break;
+        case 'toggle-key-visibility':
+          this.toggleKeyVisibility(Number(keyId));
+          break;
+        case 'test-single-key':
+          this.testSingleKey(Number(keyId));
+          break;
+        case 'copy-key':
+          this.copyKey(Number(keyId));
+          break;
+        case 'delete-key':
+          this.deleteKey(Number(keyId));
+          break;
+        case 'restore-key':
+          this.restoreKey(Number(keyId));
+          break;
+        case 'purge-key':
+          this.purgeKey(Number(keyId));
+          break;
+        case 'close-modal':
+          this.closeModal(modal);
+          break;
+        case 'disable-encryption':
+          this.disableEncryption();
+          break;
+        case 'toggle-edit-mode':
+          this.toggleEditMode();
+          break;
+        case 'copy-export':
+          this.copyExport?.();
+          break;
+        case 'cancel-encrypted-import':
+          this.cancelEncryptedImport();
+          break;
+        case 'confirm-encrypted-import':
+          this.confirmEncryptedImport();
+          break;
+        case 'download-plain-backup':
+          this.downloadPlainBackup();
+          break;
+        case 'empty-trash':
+          this.emptyTrash();
+          break;
+        case 'toggle-encrypt-settings':
+          this.toggleEncryptFromSettings(actionEl);
+          break;
+      }
     });
 
     // Escape closes the topmost open modal; Tab stays trapped inside it
@@ -183,10 +268,10 @@ class App {
     const keyCount = provider.keys?.length || 0;
     const activeKeys = provider.keys?.filter(k => k.status === 'active').length || 0;
 
-    let body = `<div class="provider-body"><button class="no-keys" data-stop onclick="app.addKeyToProvider('${safeId}')">${escapeHtml(this.t('noKeysYet'))}</button></div>`;
+    let body = `<div class="provider-body"><button class="no-keys" data-stop data-action="add-key" data-id="${safeId}">${escapeHtml(this.t('noKeysYet'))}</button></div>`;
     if (keyCount > 0) {
       const previews = provider.keys.slice(0, 2).map(k =>
-        `<button class="key-preview" data-stop onclick="app.viewProvider('${safeId}')">${maskKey(k.key)}</button>`
+        `<button class="key-preview" data-stop data-action="view" data-id="${safeId}">${maskKey(k.key)}</button>`
       ).join('');
       const more = keyCount > 2 ? `<span class="key-preview more">+${keyCount - 2} ${escapeHtml(this.t('more'))}</span>` : '';
       body = `
@@ -202,13 +287,13 @@ class App {
     const models = provider.models || [];
     const modelChips = models.length
       ? `<div class="card-models">${models.slice(0, 3).map(m =>
-          `<button class="model-chip" data-stop onclick="app.copyToClipboard('${escapeHtml(m).replace(/'/g, '&#39;')}')" title="${escapeHtml(this.t('toastCopied'))}">${escapeHtml(m)}</button>`
+          `<button class="model-chip" data-stop data-action="copy" data-value="${escapeHtml(m)}" title="${escapeHtml(this.t('toastCopied'))}">${escapeHtml(m)}</button>`
         ).join('')}${models.length > 3 ? `<span class="model-chip more">+${models.length - 3}</span>` : ''}</div>`
       : '';
 
     const pinTitle = escapeHtml(provider.pinned ? this.t('unpin') : this.t('pin'));
     const pinBtn = `<button class="pin-btn ${provider.pinned ? 'pinned' : ''}" data-stop
-      onclick="app.togglePin('${safeId}')" title="${pinTitle}" aria-label="${pinTitle}">${icon(provider.pinned ? 'pin-filled' : 'pin')}</button>`;
+      data-action="toggle-pin" data-id="${safeId}" title="${pinTitle}" aria-label="${pinTitle}">${icon(provider.pinned ? 'pin-filled' : 'pin')}</button>`;
 
     return `
       <div class="provider-card ${provider.pinned ? 'is-pinned' : ''}" data-provider="${safeId}">
@@ -216,7 +301,7 @@ class App {
           ${getProviderIcon(provider)}
           <div class="provider-info">
             <h3>${name} ${provider.pinned ? `<span class="pin-flag">${icon('pin-filled')}</span>` : ''}</h3>
-            <button class="provider-base-url" data-stop onclick="app.copyToClipboard('${baseUrl.replace(/'/g, '&#39;')}')" title="${escapeHtml(this.t('copyBaseUrl'))}" aria-label="${escapeHtml(this.t('copyBaseUrl'))}"><span class="url">${baseUrl}</span>${icon('copy')}</button>
+            <button class="provider-base-url" data-stop data-action="copy" data-value="${baseUrl}" title="${escapeHtml(this.t('copyBaseUrl'))}" aria-label="${escapeHtml(this.t('copyBaseUrl'))}"><span class="url">${baseUrl}</span>${icon('copy')}</button>
           </div>
           ${pinBtn}
         </div>
@@ -286,7 +371,7 @@ class App {
       const keyValue = escapeHtml(revealed ? k.key : maskKey(k.key));
       const eyeTitle = escapeHtml(revealed ? this.t('hideKey') : this.t('showKey'));
       const eyeBtn = `
-        <button class="icon-btn eye-btn${revealed ? ' revealed' : ''}" onclick="app.toggleKeyVisibility(${Number(k.id)})" title="${eyeTitle}" aria-label="${eyeTitle}">${icon(revealed ? 'eye-off' : 'eye')}</button>`;
+        <button class="icon-btn eye-btn${revealed ? ' revealed' : ''}" data-action="toggle-key-visibility" data-key-id="${Number(k.id)}" title="${eyeTitle}" aria-label="${eyeTitle}">${icon(revealed ? 'eye-off' : 'eye')}</button>`;
       const notes = k.notes ? `<div class="key-notes">${escapeHtml(k.notes)}</div>` : '';
       const expiry = k.expiry ? `<div class="key-expiry">${escapeHtml(this.t('expires'))}: ${new Date(k.expiry).toLocaleDateString()}</div>` : '';
       return `
@@ -298,9 +383,9 @@ class App {
           </div>
           <span class="key-status st-${escapeHtml(k.status || 'active')}">${escapeHtml(k.status || 'active')}</span>
           ${eyeBtn}
-          <button class="icon-btn" onclick="app.testSingleKey(${Number(k.id)})" title="${escapeHtml(this.t('testThisKey'))}" aria-label="${escapeHtml(this.t('testThisKey'))}">${icon('test')}</button>
-          <button class="icon-btn" onclick="app.copyKey(${Number(k.id)})" title="${escapeHtml(this.t('copyKey'))}" aria-label="${escapeHtml(this.t('copyKey'))}">${icon('copy')}</button>
-          <button class="icon-btn danger" onclick="app.deleteKey(${Number(k.id)})" title="${escapeHtml(this.t('deleteKey'))}" aria-label="${escapeHtml(this.t('deleteKey'))}">${icon('trash')}</button>
+          <button class="icon-btn" data-action="test-single-key" data-key-id="${Number(k.id)}" title="${escapeHtml(this.t('testThisKey'))}" aria-label="${escapeHtml(this.t('testThisKey'))}">${icon('test')}</button>
+          <button class="icon-btn" data-action="copy-key" data-key-id="${Number(k.id)}" title="${escapeHtml(this.t('copyKey'))}" aria-label="${escapeHtml(this.t('copyKey'))}">${icon('copy')}</button>
+          <button class="icon-btn danger" data-action="delete-key" data-key-id="${Number(k.id)}" title="${escapeHtml(this.t('deleteKey'))}" aria-label="${escapeHtml(this.t('deleteKey'))}">${icon('trash')}</button>
         </div>
       `;
     }).join('') : `<div class="empty-state">${icon('key')}<span>${escapeHtml(this.t('noKeysForProvider'))}</span></div>`;
@@ -311,13 +396,13 @@ class App {
         <h4>${escapeHtml(this.t('models'))}</h4>
         <div class="models-tags">${models.map(m => {
           const model = escapeHtml(m);
-          return `<button class="model-tag" title="${escapeHtml(this.t('toastCopied'))}" onclick="app.copyToClipboard('${model.replace(/'/g, '&#39;')}')">${model}</button>`;
+          return `<button class="model-tag" title="${escapeHtml(this.t('toastCopied'))}" data-action="copy" data-value="${model}">${model}</button>`;
         }).join('')}</div>
         <div class="actions-row">
-          <button class="btn btn-secondary btn-sm" onclick="app.copyToClipboard('${baseUrl.replace(/'/g, '&#39;')}')">
+          <button class="btn btn-secondary btn-sm" data-action="copy" data-value="${baseUrl}">
             ${icon('copy')} ${escapeHtml(this.t('copyBaseUrl'))}
           </button>
-          ${provider.website ? `<button class="btn btn-secondary btn-sm" onclick="app.openWebsite('${escapeHtml(provider.website).replace(/'/g, '&#39;')}')">${icon('link')} ${escapeHtml(this.t('website'))}</button>` : ''}
+          ${provider.website ? `<button class="btn btn-secondary btn-sm" data-action="open-website" data-url="${escapeHtml(provider.website)}">${icon('link')} ${escapeHtml(this.t('website'))}</button>` : ''}
         </div>
       </div>` : '';
 
@@ -327,7 +412,7 @@ class App {
           ${getProviderIcon(provider)}
           <div class="provider-detail-info">
             <h2>${name}</h2>
-            <button class="provider-detail-base" onclick="app.copyToClipboard('${baseUrl.replace(/'/g, '&#39;')}')" title="${escapeHtml(this.t('copyBaseUrl'))}" aria-label="${escapeHtml(this.t('copyBaseUrl'))}"><span class="url">${baseUrl}</span>${icon('copy')}</button>
+            <button class="provider-detail-base" data-action="copy" data-value="${baseUrl}" title="${escapeHtml(this.t('copyBaseUrl'))}" aria-label="${escapeHtml(this.t('copyBaseUrl'))}"><span class="url">${baseUrl}</span>${icon('copy')}</button>
           </div>
         </div>
 
@@ -337,11 +422,11 @@ class App {
           <div class="keys-header">
             <h3>${escapeHtml(this.t('apiKeys'))} (${keys.length})</h3>
             <div>
-              ${keys.length > 0 ? `<button class="btn btn-secondary btn-sm" onclick="app.openKeyTester('${safeId}')">${icon('test')} ${escapeHtml(this.t('testAllKeys'))}</button>` : ''}
-              <button class="btn btn-primary btn-sm" onclick="app.addKeyToProvider('${safeId}')">
+              ${keys.length > 0 ? `<button class="btn btn-secondary btn-sm" data-action="open-key-tester" data-id="${safeId}">${icon('test')} ${escapeHtml(this.t('testAllKeys'))}</button>` : ''}
+              <button class="btn btn-primary btn-sm" data-action="add-key" data-id="${safeId}">
                 ${icon('plus')} ${escapeHtml(this.t('addKey'))}
               </button>
-              <button class="btn btn-secondary btn-sm" onclick="app.deleteProvider('${safeId}')">
+              <button class="btn btn-secondary btn-sm" data-action="delete-provider" data-id="${safeId}">
                 ${icon('trash')} ${escapeHtml(this.t('deleteProvider'))}
               </button>
             </div>
@@ -550,8 +635,8 @@ class App {
             <div class="trash-name">${escapeHtml(p.name || p.id)}</div>
             <div class="trash-date">${p.deleted_at ? new Date(p.deleted_at).toLocaleString() : ''}</div>
           </div>
-          <button class="btn btn-secondary btn-sm" onclick="app.restoreProvider('${escapeHtml(p.id)}')">${icon('restore')} ${escapeHtml(this.t('restore'))}</button>
-          <button class="btn btn-danger btn-sm" onclick="app.purgeProvider('${escapeHtml(p.id)}')">${escapeHtml(this.t('deleteForever'))}</button>
+          <button class="btn btn-secondary btn-sm" data-action="restore-provider" data-id="${escapeHtml(p.id)}">${icon('restore')} ${escapeHtml(this.t('restore'))}</button>
+          <button class="btn btn-danger btn-sm" data-action="purge-provider" data-id="${escapeHtml(p.id)}">${escapeHtml(this.t('deleteForever'))}</button>
         </div>
       `).join('')}` : '';
 
@@ -564,8 +649,8 @@ class App {
             <div class="trash-name">${escapeHtml(k.name || this.t('unnamedKey'))}</div>
             <div class="trash-date">${k.deleted_at ? new Date(k.deleted_at).toLocaleString() : ''}</div>
           </div>
-          <button class="btn btn-secondary btn-sm" onclick="app.restoreKey(${Number(k.id)})">${icon('restore')} ${escapeHtml(this.t('restore'))}</button>
-          <button class="btn btn-danger btn-sm" onclick="app.purgeKey(${Number(k.id)})">${escapeHtml(this.t('deleteForever'))}</button>
+          <button class="btn btn-secondary btn-sm" data-action="restore-key" data-key-id="${Number(k.id)}">${icon('restore')} ${escapeHtml(this.t('restore'))}</button>
+          <button class="btn btn-danger btn-sm" data-action="purge-key" data-key-id="${Number(k.id)}">${escapeHtml(this.t('deleteForever'))}</button>
         </div>
       `).join('')}` : '';
 
@@ -630,7 +715,7 @@ class App {
         </select>
       </div>
       <div class="keytest-actions">
-        <button class="btn btn-primary" onclick="app.runBulkKeyTest('${escapeHtml(providerId)}')">${icon('test')} ${escapeHtml(this.t('testAll'))} (${keys.length})</button>
+        <button class="btn btn-primary" data-action="run-bulk-key-test" data-id="${escapeHtml(providerId)}">${icon('test')} ${escapeHtml(this.t('testAll'))} (${keys.length})</button>
       </div>
       <div id="keyTestResults" class="keytest-results">
         <p class="form-hint">${escapeHtml(this.t('corsHint'))}</p>
@@ -1038,7 +1123,7 @@ class App {
           </div>
           ${added
             ? `<span class="directory-added">${escapeHtml(this.t('added'))}</span>`
-            : `<button class="btn btn-primary btn-sm" onclick="app.addFromDirectory('${safeId}')">${escapeHtml(this.t('addAction'))}</button>`}
+            : `<button class="btn btn-primary btn-sm" data-action="add-from-directory" data-id="${safeId}">${escapeHtml(this.t('addAction'))}</button>`}
         </div>
       `;
     }).join('');
@@ -1145,13 +1230,15 @@ class App {
   }
 }
 
-// Initialize app
-window.app = new App();
-window.addEventListener('load', () => {
-  app.init().then(() => {
-    app.showToast(app.t('toastLoaded'));
-  }).catch(err => {
-    console.error('Init error:', err);
-    app.showToast('Failed to load', 'error');
+// Initialize app in browser context
+if (typeof window !== 'undefined') {
+  window.app = new App();
+  window.addEventListener('load', () => {
+    window.app.init().then(() => {
+      window.app.showToast(window.app.t('toastLoaded'));
+    }).catch(err => {
+      console.error('Init error:', err);
+      window.app.showToast('Failed to load', 'error');
+    });
   });
-});
+}
