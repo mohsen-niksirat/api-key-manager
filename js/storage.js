@@ -343,7 +343,12 @@ export class APIKeyStorage {
   async exportData() {
     const [providers, keys, settings] = await Promise.all([
       this.getProviders(),
-      this.getAPIKeys(),
+      new Promise((resolve, reject) => {
+        const tx = this.db.transaction('api_keys', 'readonly');
+        const req = tx.objectStore('api_keys').getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+      }),
       this.getAllSettings()
     ]);
 

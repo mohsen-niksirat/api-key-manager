@@ -49,9 +49,24 @@ export class ProviderManager {
   }
 
   async addFromDirectory(entry) {
-    // Skip if the provider already exists
+    // Skip if the provider already exists and is active
     const existing = await this.storage.getProvider(entry.id);
-    if (existing) return { added: false, reason: 'exists' };
+    if (existing) {
+      if (existing.deleted) {
+        // Restore soft-deleted provider (and any keys deleted with it) + refresh metadata
+        await this.storage.restoreProvider(entry.id);
+        await this.storage.updateProvider(entry.id, {
+          name: entry.name || existing.name,
+          base_url: entry.base_url || existing.base_url,
+          website: entry.website ?? existing.website ?? null,
+          logo: entry.logo ?? existing.logo ?? null,
+          models: (existing.models && existing.models.length) ? existing.models : (entry.models || []),
+          category: entry.category || existing.category || 'other'
+        });
+        return { added: true, restored: true };
+      }
+      return { added: false, reason: 'exists' };
+    }
 
     await this.addProvider({
       id: entry.id,

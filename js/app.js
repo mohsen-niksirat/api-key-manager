@@ -27,6 +27,7 @@ export class App {
     this.encryptEnabled = false;
     this.i18n = new I18n(I18n.detectLang());
     this.visibleKeys = new Set(); // key ids currently revealed via eye toggle
+    this.decryptedKeys = new Map(); // in-memory cache of decrypted key values
     this.pendingEncryptedImport = null;
     this.listFilter = 'all';
     this.listSort = 'pinned';
@@ -271,7 +272,7 @@ export class App {
     let body = `<div class="provider-body"><button class="no-keys" data-stop data-action="add-key" data-id="${safeId}">${escapeHtml(this.t('noKeysYet'))}</button></div>`;
     if (keyCount > 0) {
       const previews = provider.keys.slice(0, 2).map(k =>
-        `<button class="key-preview" data-stop data-action="view" data-id="${safeId}">${maskKey(k.key)}</button>`
+        `<button class="key-preview" data-stop data-action="view" data-id="${safeId}">${isEncrypted(k.key) ? icon('lock') + ' ••••••••••••' : escapeHtml(maskKey(k.key))}</button>`
       ).join('');
       const more = keyCount > 2 ? `<span class="key-preview more">+${keyCount - 2} ${escapeHtml(this.t('more'))}</span>` : '';
       body = `
@@ -368,7 +369,11 @@ export class App {
       const isEnc = isEncrypted(k.key);
       const lockBadge = isEnc ? `<span class="key-lock" title="${escapeHtml(this.t('encryptedAtRest'))}">${icon('lock')}</span>` : '';
       const revealed = this.visibleKeys.has(Number(k.id));
-      const keyValue = escapeHtml(revealed ? k.key : maskKey(k.key));
+      const rawKey = this.decryptedKeys?.get(Number(k.id));
+      const displayKey = revealed
+        ? (rawKey ?? k.key)
+        : (isEnc && !rawKey ? '••••••••••••' : maskKey(rawKey ?? k.key));
+      const keyValue = escapeHtml(displayKey);
       const eyeTitle = escapeHtml(revealed ? this.t('hideKey') : this.t('showKey'));
       const eyeBtn = `
         <button class="icon-btn eye-btn${revealed ? ' revealed' : ''}" data-action="toggle-key-visibility" data-key-id="${Number(k.id)}" title="${eyeTitle}" aria-label="${eyeTitle}">${icon(revealed ? 'eye-off' : 'eye')}</button>`;
@@ -442,12 +447,36 @@ export class App {
     this.openEditProvider(this.activeProvider.id);
   }
 
+  /** Resolve a key's plaintext value (decrypting if encrypted and masterPassword is available). */
+  async resolveKeyPlaintext(keyObj) {
+    if (!keyObj) return null;
+    if (!isEncrypted(keyObj.key)) return keyObj.key;
+    if (!this.masterPassword) {
+      await this.openEncryptModal();
+      return null;
+    }
+    try {
+      const plain = await decryptWithPassword(this.masterPassword, keyObj.key);
+      if (!this.decryptedKeys) this.decryptedKeys = new Map();
+      this.decryptedKeys.set(Number(keyObj.id), plain);
+      return plain;
+    } catch (err) {
+      this.showToast(this.t('toastDecryptFail'), 'error');
+      return null;
+    }
+  }
+
   /** Reveal/hide the full key value for one row. */
-  toggleKeyVisibility(id) {
+  async toggleKeyVisibility(id) {
     id = Number(id);
     if (this.visibleKeys.has(id)) {
       this.visibleKeys.delete(id);
     } else {
+      const keyObj = await this.providerManager.getAPIKeyById(id);
+      if (keyObj && isEncrypted(keyObj.key)) {
+        const plain = await this.resolveKeyPlaintext(keyObj);
+        if (plain === null) return;
+      }
       this.visibleKeys.add(id);
     }
     // Re-render just the detail modal if open
@@ -504,11 +533,15 @@ export class App {
     }
   }
 
-  addKeyToProvider(providerId) {
+  async addKeyToProvider(providerId) {
     const modal = document.getElementById('modalAddKey');
     if (!modal) return;
     modal.dataset.providerId = providerId;
     modal.querySelector('form').reset();
+    if (this.encryptEnabled && !this.masterPassword) {
+      await this.openEncryptModal();
+      return;
+    }
     this.openModal('modalAddKey');
   }
 
@@ -523,6 +556,11 @@ export class App {
 
     if (!key || !providerId) {
       this.showToast(this.t('toastEnterKey'), 'error');
+      return;
+    }
+
+    if (this.encryptEnabled && !this.masterPassword) {
+      await this.openEncryptModal();
       return;
     }
 
@@ -550,7 +588,10 @@ export class App {
   async copyKey(id) {
     const key = await this.providerManager.getAPIKeyById(id);
     if (key) {
-      await this.copyToClipboard(key.key);
+      const plain = await this.resolveKeyPlaintext(key);
+      if (plain !== null) {
+        await this.copyToClipboard(plain);
+      }
     }
   }
 
@@ -584,6 +625,7 @@ export class App {
     if (!confirm(this.t('confirmDeleteKey'))) return;
     await this.providerManager.softDeleteAPIKey(id);
     this.visibleKeys.delete(Number(id));
+    this.decryptedKeys.delete(Number(id));
     this.showToast(this.t('toastTrashed'));
     if (this.activeProvider) {
       this.viewProvider(this.activeProvider.id);
@@ -715,7 +757,7 @@ export class App {
         </select>
       </div>
       <div class="keytest-actions">
-        <button class="btn btn-primary" data-action="run-bulk-key-test" data-id="${escapeHtml(providerId)}">${icon('test')} ${escapeHtml(this.t('testAll'))} (${keys.length})</button>
+        <button type="button" class="btn btn-primary" data-action="run-bulk-key-test" data-id="${escapeHtml(providerId)}">${icon('test')} ${escapeHtml(this.t('testAll'))} (${keys.length})</button>
       </div>
       <div id="keyTestResults" class="keytest-results">
         <p class="form-hint">${escapeHtml(this.t('corsHint'))}</p>
@@ -730,6 +772,10 @@ export class App {
     const provider = await this.providerManager.getProvider(key.provider_id);
     if (!provider) return;
 
+    const plain = await this.resolveKeyPlaintext(key);
+    if (plain === null) return;
+    const resolvedKey = { ...key, key: plain };
+
     // Ensure the test modal is visible with a spinner row for this key
     await this.openKeyTester(key.provider_id);
     const results = document.getElementById('keyTestResults');
@@ -739,7 +785,7 @@ export class App {
         <span class="keytest-status pending"><span class="keytest-spinner" aria-hidden="true"></span>${escapeHtml(this.t('testing'))}</span>
       </div>`;
 
-    const result = await testKey(provider, key);
+    const result = await testKey(provider, resolvedKey);
     const row = document.getElementById('singleTestRow');
     if (row) {
       row.className = `keytest-row ${result.ok ? 'pass' : 'fail'}`;
@@ -755,16 +801,23 @@ export class App {
     const keys = await this.providerManager.getAPIKeys(providerId);
     if (!keys.length) return;
 
+    const resolvedKeys = [];
+    for (const k of keys) {
+      const plain = await this.resolveKeyPlaintext(k);
+      if (plain === null) return;
+      resolvedKeys.push({ ...k, key: plain });
+    }
+
     const model = document.getElementById('keyTestModel')?.value || undefined;
     const results = document.getElementById('keyTestResults');
 
-    results.innerHTML = keys.map(k => `
+    results.innerHTML = resolvedKeys.map(k => `
       <div class="keytest-row testing-row" id="test-row-${Number(k.id)}">
         <span class="keytest-name">${escapeHtml(k.name || this.t('unnamedKey'))}</span>
         <span class="keytest-status pending"><span class="keytest-spinner" aria-hidden="true"></span>${escapeHtml(this.t('testing'))}</span>
       </div>`).join('');
 
-    await testAllKeys(provider, keys, {
+    await testAllKeys(provider, resolvedKeys, {
       model,
       onProgress: (done, total, r) => {
         const row = document.getElementById(`test-row-${Number(r.keyId)}`);
@@ -813,6 +866,13 @@ export class App {
     const modal = document.getElementById('modalExport');
     modal.querySelector('textarea').value = JSON.stringify(data, null, 2);
     this.openModal('modalExport');
+  }
+
+  async copyExport() {
+    const textarea = document.getElementById('exportTextarea');
+    if (textarea?.value) {
+      await this.copyToClipboard(textarea.value);
+    }
   }
 
   // ---------- Backup (encrypted or plain) ----------
@@ -929,6 +989,11 @@ export class App {
     if (!confirm(this.t('confirmImport', { n: count }))) return;
 
     await this.storage.importData(data);
+    this.visibleKeys.clear();
+    this.decryptedKeys.clear();
+    this.masterPassword = null;
+    await this.loadSettings();
+    await this.initEncryption();
     this.showToast(this.t('toastImported'));
     this.loadProviders();
   }
@@ -1021,7 +1086,7 @@ export class App {
     }
 
     try {
-      this.showToast('Encrypting keys…');
+      this.showToast(this.t('toastEncrypting'));
       const count = await this.providerManager.encryptAllKeys(password);
       const verifier = await makeVerifier(password);
       await this.storage.saveSetting('masterVerifier', verifier);
@@ -1074,6 +1139,7 @@ export class App {
       await this.storage.saveSetting('masterVerifier', null);
       this.masterPassword = null;
       this.encryptEnabled = false;
+      this.decryptedKeys.clear();
       this.closeModal('modalEncrypt');
       this.loadProviders();
       this.showToast(this.t('toastEncDisabled', { n: count }));
@@ -1198,12 +1264,7 @@ export class App {
   async handleSearch(query) {
     const clearBtn = document.getElementById('btnClearSearch');
     if (clearBtn) clearBtn.hidden = !query;
-    if (!query.trim()) {
-      await this.loadProviders();
-      return;
-    }
-    const results = await this.providerManager.searchKeys(query);
-    this.renderProviders(results);
+    await this.loadProviders();
   }
 
   showToast(message, type = 'success') {

@@ -150,5 +150,24 @@ export const tests = {
     const hits = await pm.listProviders({ query: 'gpt-9' });
     assertEqual(hits.length, 1);
     assertEqual(hits[0].name, 'Searchable');
+  },
+
+  async 'addFromDirectory restores soft-deleted provider instead of failing as duplicate'() {
+    const storage = softStorage();
+    const pm = new ProviderManager(storage);
+    await pm.addProvider({ id: 'openai', name: 'OpenAI', base_url: 'https://api.openai.com/v1', models: ['gpt-4o'] });
+    await pm.softDeleteProvider('openai');
+
+    assertEqual((await pm.getAllProviders()).length, 0, 'provider is in trash');
+
+    const res = await pm.addFromDirectory({
+      id: 'openai',
+      name: 'OpenAI',
+      base_url: 'https://api.openai.com/v1',
+      category: 'OpenAI'
+    });
+    assertEqual(res.added, true, 'should succeed when provider was in trash');
+    assertEqual(res.restored, true, 'should mark as restored');
+    assertEqual((await pm.getAllProviders()).length, 1, 'provider is active again');
   }
 };
