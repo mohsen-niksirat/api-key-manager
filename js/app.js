@@ -355,8 +355,9 @@ export class App {
     const pinBtn = `<button class="pin-btn ${provider.pinned ? 'pinned' : ''}" data-stop
       data-action="toggle-pin" data-id="${safeId}" title="${pinTitle}" aria-label="${pinTitle}">${icon(provider.pinned ? 'pin-filled' : 'pin')}</button>`;
 
+    const staggerIndex = Math.min(index, 8);
     return `
-      <div class="provider-card ${provider.pinned ? 'is-pinned' : ''}" data-provider="${safeId}" style="--brand: ${accent}; --i: ${index}">
+      <div class="provider-card ${provider.pinned ? 'is-pinned' : ''}" data-provider="${safeId}" style="--brand: ${accent}; --i: ${staggerIndex}">
         <div class="provider-header">
           ${getProviderIcon(provider)}
           <div class="provider-info">

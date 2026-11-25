@@ -109,9 +109,7 @@ svg.icon { width: 18px; height: 18px; flex-shrink: 0; display: block; }
   justify-content: space-between;
   gap: 16px;
   padding: 12px 24px;
-  background: color-mix(in srgb, var(--surface-1) 88%, transparent);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
+  background: var(--surface-1);
   border-bottom: 1px solid var(--line);
 }
 .logo { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 16px; letter-spacing: -0.01em; }
@@ -406,25 +404,23 @@ svg.icon { width: 18px; height: 18px; flex-shrink: 0; display: block; }
 
 .provider-card {
   position: relative;
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--brand, var(--accent)) 6%, var(--surface-1)), var(--surface-1) 52%);
+  background: var(--surface-1);
   border: 1px solid var(--line);
   border-inline-start: 3px solid var(--brand, var(--accent));
   border-radius: var(--radius-lg);
   overflow: hidden;
   cursor: pointer;
-  animation: cardIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  animation-delay: calc(var(--i, 0) * 28ms);
-  transition: border-color var(--speed), transform var(--speed), box-shadow var(--speed);
+  contain: layout style paint;
+  animation: cardIn 180ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 18ms);
+  transition: border-color var(--speed), transform var(--speed);
 }
 .provider-card:hover {
   border-color: color-mix(in srgb, var(--brand, var(--accent)) 55%, var(--line-strong));
   transform: translateY(-2px);
-  box-shadow: 0 12px 28px -16px rgba(0, 0, 0, 0.55);
 }
 .provider-card.is-pinned {
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--brand, var(--accent)) 11%, var(--surface-1)), var(--surface-1) 60%);
+  background: color-mix(in srgb, var(--brand, var(--accent)) 5%, var(--surface-1));
   border-color: color-mix(in srgb, var(--brand, var(--accent)) 35%, var(--line));
 }
 
