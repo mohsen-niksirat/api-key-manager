@@ -387,6 +387,27 @@ export function getProviderIcon(provider) {
   return placeholder;
 }
 
+export function getProviderAccent(id) {
+  const accents = {
+    'openai': '#10A37F',
+    'anthropic': '#D97757',
+    'google': '#4285F4',
+    'groq': '#F55036',
+    'deepseek': '#4D6BFE',
+    'mistral': '#FF7000',
+    'openrouter': '#6366F1',
+    'together': '#0F6FFF',
+    'fireworks': '#8B5CF6',
+    'replicate': '#14B8A6',
+    'huggingface': '#F59E0B',
+    'cohere': '#39594D',
+    'perplexity': '#20B2AA',
+    'xai': '#A1A1AA',
+    'default': '#6366F1'
+  };
+  return accents[id] || accents.default;
+}
+
 export function getProviderColor(id) {
   const colors = {
     'openai': 'linear-gradient(135deg, #109286, #0b7b6b)',

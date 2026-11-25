@@ -1,7 +1,7 @@
 // app.js - Main application logic
 
 import { APIKeyStorage } from './storage.js';
-import { ProviderManager, maskKey, getProviderIcon, escapeHtml } from './providers.js';
+import { ProviderManager, maskKey, getProviderIcon, getProviderAccent, escapeHtml } from './providers.js';
 import {
   encryptWithPassword,
   decryptWithPassword,
@@ -103,7 +103,7 @@ export class App {
       const { action, id, keyId, value, url, modal } = actionEl.dataset;
       switch (action) {
         case 'copy':
-          this.copyToClipboard(value ?? '');
+          this.copyToClipboard(value ?? '', actionEl);
           break;
         case 'view':
           this.viewProvider(id);
@@ -142,7 +142,7 @@ export class App {
           this.testSingleKey(Number(keyId));
           break;
         case 'copy-key':
-          this.copyKey(Number(keyId));
+          this.copyKey(Number(keyId), actionEl);
           break;
         case 'delete-key':
           this.deleteKey(Number(keyId));
@@ -234,24 +234,72 @@ export class App {
 
   async loadProviders() {
     const query = document.getElementById('globalSearch')?.value || '';
-    const providers = await this.providerManager.listProviders({
-      query,
-      filter: this.listFilter,
-      sort: this.listSort
-    });
-    this.renderProviders(providers);
+    const [providers, allProviders] = await Promise.all([
+      this.providerManager.listProviders({
+        query,
+        filter: this.listFilter,
+        sort: this.listSort
+      }),
+      this.providerManager.getAllProviders(true)
+    ]);
+    this.renderProviders(providers, { query, allCount: allProviders.length });
+    await this.updateStatsStrip(allProviders);
   }
 
-  renderProviders(providers) {
+  async updateStatsStrip(allProviders) {
+    const strip = document.getElementById('statsStrip');
+    if (!strip) return;
+    const totalProviders = allProviders.length;
+    const totalKeys = allProviders.reduce((sum, p) => sum + (p.keys?.length || 0), 0);
+    const encState = !this.encryptEnabled
+      ? { label: this.t('statsEncryptedOff'), cls: 'off' }
+      : (this.masterPassword
+        ? { label: this.t('statsEncryptedOn'), cls: 'ok' }
+        : { label: this.t('statsEncryptedLocked'), cls: 'warn' });
+    const lastBackupRaw = await this.storage.getSetting('lastBackup');
+    const lastBackup = lastBackupRaw ? new Date(lastBackupRaw).toLocaleDateString() : this.t('statsNever');
+
+    strip.innerHTML = `
+      <div class="stat-pill"><span class="stat-label">${escapeHtml(this.t('statsProviders'))}</span><strong class="stat-val">${totalProviders}</strong></div>
+      <div class="stat-pill"><span class="stat-label">${escapeHtml(this.t('statsKeys'))}</span><strong class="stat-val">${totalKeys}</strong></div>
+      <div class="stat-pill"><span class="stat-dot ${encState.cls}" aria-hidden="true"></span><span class="stat-label">${escapeHtml(this.t('statsEncryption'))}</span><strong class="stat-val">${escapeHtml(encState.label)}</strong></div>
+      <div class="stat-pill"><span class="stat-label">${escapeHtml(this.t('statsLastBackup'))}</span><strong class="stat-val">${escapeHtml(lastBackup)}</strong></div>
+    `;
+  }
+
+  renderProviders(providers, meta = {}) {
     const container = document.getElementById('providersContainer');
     if (!container) return;
 
     if (!providers.length) {
-      container.innerHTML = `<div class="empty-state-full">${icon('dial')}<span>${escapeHtml(this.t('noProviders'))}</span></div>`;
+      const hasFilter = Boolean((meta.query || '').trim() || this.listFilter !== 'all');
+      const title = hasFilter ? this.t('noResults') : this.t('noProviders');
+      const hint = hasFilter ? this.t('noResultsHint') : this.t('noProvidersHint');
+      container.innerHTML = `
+        <div class="empty-state-full">
+          <div class="empty-icon-ring">${icon(hasFilter ? 'search' : 'dial')}</div>
+          <h3>${escapeHtml(title)}</h3>
+          <p>${escapeHtml(hint)}</p>
+        </div>`;
       return;
     }
 
-    container.innerHTML = providers.map(p => this.renderProviderCard(p)).join('');
+    const pinned = providers.filter(p => p.pinned);
+    const rest = providers.filter(p => !p.pinned);
+
+    if (pinned.length && rest.length && this.listSort === 'pinned') {
+      container.innerHTML = `
+        <section class="providers-section pinned-section">
+          <div class="section-heading">${icon('pin-filled')}<span>${escapeHtml(this.t('pinnedSection'))}</span><span class="section-count">${pinned.length}</span></div>
+          <div class="providers-grid pinned-grid">${pinned.map((p, i) => this.renderProviderCard(p, i)).join('')}</div>
+        </section>
+        <section class="providers-section all-providers-section">
+          <div class="section-heading"><span>${escapeHtml(this.t('allProvidersSection'))}</span><span class="section-count">${rest.length}</span></div>
+          <div class="providers-grid">${rest.map((p, i) => this.renderProviderCard(p, pinned.length + i)).join('')}</div>
+        </section>`;
+    } else {
+      container.innerHTML = `<div class="providers-grid ${pinned.length === providers.length ? 'pinned-grid' : ''}">${providers.map((p, i) => this.renderProviderCard(p, i)).join('')}</div>`;
+    }
 
     container.querySelectorAll('.provider-card').forEach(card => {
       card.addEventListener('click', (e) => {
@@ -262,8 +310,9 @@ export class App {
     });
   }
 
-  renderProviderCard(provider) {
+  renderProviderCard(provider, index = 0) {
     const safeId = escapeHtml(provider.id);
+    const accent = getProviderAccent(provider.id);
     const name = escapeHtml(provider.name || 'Untitled');
     const baseUrl = escapeHtml(provider.base_url || '');
     const keyCount = provider.keys?.length || 0;
@@ -297,7 +346,7 @@ export class App {
       data-action="toggle-pin" data-id="${safeId}" title="${pinTitle}" aria-label="${pinTitle}">${icon(provider.pinned ? 'pin-filled' : 'pin')}</button>`;
 
     return `
-      <div class="provider-card ${provider.pinned ? 'is-pinned' : ''}" data-provider="${safeId}">
+      <div class="provider-card ${provider.pinned ? 'is-pinned' : ''}" data-provider="${safeId}" style="--brand: ${accent}; --i: ${index}">
         <div class="provider-header">
           ${getProviderIcon(provider)}
           <div class="provider-info">
@@ -361,10 +410,18 @@ export class App {
 
   renderProviderDetail(provider, keys) {
     const safeId = escapeHtml(provider.id);
+    const accent = getProviderAccent(provider.id);
     const name = escapeHtml(provider.name || 'Untitled');
     const baseUrl = escapeHtml(provider.base_url || '');
 
-    const keysList = keys.length > 0 ? keys.map(k => {
+    const keysTableHead = keys.length > 0 ? `
+      <div class="keys-table-head" aria-hidden="true">
+        <span>${escapeHtml(this.t('tableKeyName'))} / ${escapeHtml(this.t('tableValue'))}</span>
+        <span>${escapeHtml(this.t('tableStatus'))}</span>
+        <span>${escapeHtml(this.t('tableActions'))}</span>
+      </div>` : '';
+
+    const keysList = keys.length > 0 ? keysTableHead + keys.map(k => {
       const keyName = escapeHtml(k.name || this.t('unnamedKey'));
       const isEnc = isEncrypted(k.key);
       const lockBadge = isEnc ? `<span class="key-lock" title="${escapeHtml(this.t('encryptedAtRest'))}">${icon('lock')}</span>` : '';
@@ -387,10 +444,12 @@ export class App {
             ${notes}${expiry}
           </div>
           <span class="key-status st-${escapeHtml(k.status || 'active')}">${escapeHtml(k.status || 'active')}</span>
-          ${eyeBtn}
-          <button class="icon-btn" data-action="test-single-key" data-key-id="${Number(k.id)}" title="${escapeHtml(this.t('testThisKey'))}" aria-label="${escapeHtml(this.t('testThisKey'))}">${icon('test')}</button>
-          <button class="icon-btn" data-action="copy-key" data-key-id="${Number(k.id)}" title="${escapeHtml(this.t('copyKey'))}" aria-label="${escapeHtml(this.t('copyKey'))}">${icon('copy')}</button>
-          <button class="icon-btn danger" data-action="delete-key" data-key-id="${Number(k.id)}" title="${escapeHtml(this.t('deleteKey'))}" aria-label="${escapeHtml(this.t('deleteKey'))}">${icon('trash')}</button>
+          <div class="key-actions">
+            ${eyeBtn}
+            <button class="icon-btn" data-action="test-single-key" data-key-id="${Number(k.id)}" title="${escapeHtml(this.t('testThisKey'))}" aria-label="${escapeHtml(this.t('testThisKey'))}">${icon('test')}</button>
+            <button class="icon-btn" data-action="copy-key" data-key-id="${Number(k.id)}" title="${escapeHtml(this.t('copyKey'))}" aria-label="${escapeHtml(this.t('copyKey'))}">${icon('copy')}</button>
+            <button class="icon-btn danger" data-action="delete-key" data-key-id="${Number(k.id)}" title="${escapeHtml(this.t('deleteKey'))}" aria-label="${escapeHtml(this.t('deleteKey'))}">${icon('trash')}</button>
+          </div>
         </div>
       `;
     }).join('') : `<div class="empty-state">${icon('key')}<span>${escapeHtml(this.t('noKeysForProvider'))}</span></div>`;
@@ -413,7 +472,7 @@ export class App {
 
     return `
       <div class="provider-detail">
-        <div class="provider-detail-header">
+        <div class="provider-detail-header" style="--brand: ${accent}">
           ${getProviderIcon(provider)}
           <div class="provider-detail-info">
             <h2>${name}</h2>
@@ -585,19 +644,25 @@ export class App {
     }
   }
 
-  async copyKey(id) {
+  async copyKey(id, triggerEl) {
     const key = await this.providerManager.getAPIKeyById(id);
     if (key) {
       const plain = await this.resolveKeyPlaintext(key);
       if (plain !== null) {
-        await this.copyToClipboard(plain);
+        await this.copyToClipboard(plain, triggerEl);
       }
     }
   }
 
-  async copyToClipboard(text) {
+  async copyToClipboard(text, triggerEl) {
+    const flashCopied = () => {
+      if (!triggerEl) return;
+      triggerEl.classList.add('copied');
+      setTimeout(() => triggerEl.classList.remove('copied'), 1200);
+    };
     try {
       await navigator.clipboard.writeText(text);
+      flashCopied();
       this.showToast(this.t('toastCopied'));
     } catch (e) {
       // Fallback for non-secure contexts (e.g. plain http:// LAN access)
@@ -609,6 +674,7 @@ export class App {
       ta.select();
       try {
         document.execCommand('copy');
+        flashCopied();
         this.showToast(this.t('toastCopied'));
       } catch (err) {
         this.showToast(this.t('toastCopyFailed'), 'error');
@@ -903,6 +969,8 @@ export class App {
       const data = await this.storage.exportData();
       const cipher = await encryptWithPassword(password, JSON.stringify(data));
       this.saveBackupFile(BACKUP_PREFIX + cipher, 'application/octet-stream', '.akmbak');
+      await this.storage.saveSetting('lastBackup', new Date().toISOString());
+      this.loadProviders();
       this.showToast(this.t('toastEncryptedBackup'));
       this.closeModal('modalBackup');
     } catch (err) {
@@ -914,6 +982,8 @@ export class App {
   async downloadPlainBackup() {
     const data = await this.storage.exportData();
     this.saveBackupFile(JSON.stringify(data, null, 2), 'application/json', '.json');
+    await this.storage.saveSetting('lastBackup', new Date().toISOString());
+    this.loadProviders();
     this.showToast(this.t('toastBackupDownloaded'));
   }
 

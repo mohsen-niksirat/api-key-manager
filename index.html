@@ -38,11 +38,15 @@
 
   <div class="backdrop" aria-hidden="true"></div>
 
-  <div id="modalEncrypt" class="modal">
+  <div id="modalEncrypt" class="modal modal-vault-lock">
     <div class="modal-content">
       <div class="modal-header">
         <h3><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg> <span data-i18n="encryptionTitle">Encryption</span></h3>
         <button class="modal-close" data-action="close-modal" data-modal="modalEncrypt" data-i18n-title="close" title="Close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+      </div>
+      <div class="vault-lock-hero">
+        <div class="vault-lock-emblem" aria-hidden="true"><svg class="icon"><use href="#i-lock"/></svg></div>
+        <p class="vault-lock-subtitle" data-i18n="unlockSubtitle">Enter your master password to unlock encrypted keys.</p>
       </div>
       <div id="encryptStatus" class="encrypt-status"></div>
       <form id="formEncryptSetup" onsubmit="event.preventDefault(); app.setupEncryption()">
@@ -94,10 +98,12 @@
           <option value="en">EN</option>
           <option value="fa">فا</option>
         </select>
+        <div class="action-group">
+          <button id="btnDownload" class="icon-button" data-i18n-title="download" title="Download JSON"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg></button>
+          <button id="btnImport" class="icon-button" data-i18n-title="importBackup" title="Import backup"><svg class="icon" aria-hidden="true"><use href="#i-import"/></svg></button>
+          <button id="btnExport" class="icon-button" data-i18n-title="exportJson" title="Export JSON"><svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg></button>
+        </div>
         <button id="themeToggle" class="icon-button" data-i18n-title="themeToggle" title="Toggle theme"><svg class="icon" aria-hidden="true"><use href="#i-theme"/></svg></button>
-        <button id="btnDownload" class="icon-button" data-i18n-title="download" title="Download JSON"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg></button>
-        <button id="btnImport" class="icon-button" data-i18n-title="importBackup" title="Import backup"><svg class="icon" aria-hidden="true"><use href="#i-import"/></svg></button>
-        <button id="btnExport" class="icon-button" data-i18n-title="exportJson" title="Export JSON"><svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg></button>
         <button id="btnSettings" class="icon-button" data-i18n-title="settings" title="Settings"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg></button>
         <input type="file" id="importFile" accept=".json,.akmbak" style="display: none;" />
       </div>
@@ -113,6 +119,7 @@
           <button id="btnAddProvider" class="btn btn-primary"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg><span data-i18n="addProvider">Add Provider</span></button>
         </div>
       </div>
+      <div id="statsStrip" class="stats-strip" aria-live="polite"></div>
       <div class="filter-bar">
         <div class="filter-chips" id="filterChips">
           <button class="chip active" data-filter="all" data-i18n="filterAll">All</button>
@@ -128,8 +135,12 @@
           <option value="newest" data-i18n="sortNewest">Newest</option>
         </select>
       </div>
-      <div id="providersContainer" class="providers-grid">
-        <div class="loading-state" data-i18n="loading">Loading...</div>
+      <div id="providersContainer" class="providers-workspace">
+        <div class="providers-grid">
+          <div class="skeleton-card" aria-hidden="true"></div>
+          <div class="skeleton-card" aria-hidden="true"></div>
+          <div class="skeleton-card" aria-hidden="true"></div>
+        </div>
       </div>
     </main>
 
