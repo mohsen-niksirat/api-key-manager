@@ -31,6 +31,7 @@ export class App {
     this.pendingEncryptedImport = null;
     this.listFilter = 'all';
     this.listSort = 'pinned';
+    this.cardLayout = 'auto';
   }
 
   /** Translate helper bound to the current language. */
@@ -84,6 +85,11 @@ export class App {
       this.listFilter = chip.dataset.filter;
       document.querySelectorAll('#filterChips .chip').forEach(c => c.classList.toggle('active', c === chip));
       this.loadProviders();
+    });
+    document.getElementById('layoutSwitcher')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('.layout-btn');
+      if (!btn) return;
+      this.setCardLayout(btn.dataset.layout);
     });
 
     // Close modals via backdrop click
@@ -1333,9 +1339,25 @@ export class App {
     this.loadProviders();
   }
 
+  setCardLayout(layout, persist = true) {
+    const valid = ['auto', '2col', '1col', 'minimal'];
+    const next = valid.includes(layout) ? layout : 'auto';
+    this.cardLayout = next;
+    const container = document.getElementById('providersContainer');
+    if (container) container.dataset.layout = next;
+    document.querySelectorAll('#layoutSwitcher .layout-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.layout === next);
+    });
+    if (persist) {
+      this.storage.saveSetting('cardLayout', next);
+    }
+  }
+
   async loadSettings() {
     const theme = await this.storage.getSetting('theme');
     this.applyTheme(theme || 'theme-dark');
+    const savedLayout = await this.storage.getSetting('cardLayout');
+    this.setCardLayout(savedLayout || 'auto', false);
     this.applyLanguage();
     // Reflect system theme changes live when theme=system
     window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {

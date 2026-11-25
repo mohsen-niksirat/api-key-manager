@@ -128,12 +128,20 @@
           <button class="chip" data-filter="noKeys" data-i18n="filterNoKeys">No keys</button>
           <button class="chip" data-filter="custom" data-i18n="filterCustom">Custom</button>
         </div>
-        <select id="sortSelect" class="sort-select">
-          <option value="pinned" data-i18n="sortPinned">Pinned first</option>
-          <option value="name" data-i18n="sortName">Name A→Z</option>
-          <option value="keys" data-i18n="sortKeys">Most keys</option>
-          <option value="newest" data-i18n="sortNewest">Newest</option>
-        </select>
+        <div class="filter-controls">
+          <div class="layout-switcher" id="layoutSwitcher" role="group" aria-label="Card layout">
+            <button type="button" class="layout-btn active" data-layout="auto" data-i18n-title="layoutAuto" title="Auto grid">3</button>
+            <button type="button" class="layout-btn" data-layout="2col" data-i18n-title="layoutTwo" title="2 per row">2</button>
+            <button type="button" class="layout-btn" data-layout="1col" data-i18n-title="layoutOne" title="1 per row">1</button>
+            <button type="button" class="layout-btn" data-layout="minimal" data-i18n-title="layoutMinimal" title="Minimal" data-i18n="layoutMinimalShort">Min</button>
+          </div>
+          <select id="sortSelect" class="sort-select">
+            <option value="pinned" data-i18n="sortPinned">Pinned first</option>
+            <option value="name" data-i18n="sortName">Name A→Z</option>
+            <option value="keys" data-i18n="sortKeys">Most keys</option>
+            <option value="newest" data-i18n="sortNewest">Newest</option>
+          </select>
+        </div>
       </div>
       <div id="providersContainer" class="providers-workspace">
         <div class="providers-grid">
