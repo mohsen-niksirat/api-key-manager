@@ -131,6 +131,7 @@ export const TRANSLATIONS = {
 
     exportTitle: 'Export Data',
     exportedJson: 'Exported JSON',
+    exportProvidersOnly: 'Export active providers only (exclude API keys & settings)',
     close: 'Close',
     copyToClipboard: 'Copy to clipboard',
 
@@ -170,6 +171,7 @@ export const TRANSLATIONS = {
     backupPasswordHint: 'Used to encrypt the backup file. The master password is used by default.',
     downloadEncrypted: 'Download encrypted backup',
     downloadPlain: 'Download plain JSON',
+    downloadProvidersOnly: 'Providers only (no keys)',
     importEncrypted: 'Encrypted backup file, enter its password:',
 
     // Toasts
@@ -183,6 +185,7 @@ export const TRANSLATIONS = {
     toastCopyFailed: 'Copy failed',
     toastSettingsSaved: 'Settings saved',
     toastBackupDownloaded: 'Backup downloaded',
+    toastProvidersExported: 'Providers backup downloaded (no keys)',
     toastEncryptedBackup: 'Encrypted backup downloaded',
     toastImported: 'Data imported successfully',
     toastInvalidFile: 'Invalid file format',
@@ -332,6 +335,7 @@ export const TRANSLATIONS = {
 
     exportTitle: 'خروجی داده',
     exportedJson: 'JSON خروجی',
+    exportProvidersOnly: 'فقط پرووایدرهای فعال (بدون کلیدها و تنظیمات)',
     close: 'بستن',
     copyToClipboard: 'کپی به کلیپ‌بورد',
 
@@ -370,6 +374,7 @@ export const TRANSLATIONS = {
     backupPasswordHint: 'برای رمزنگاری فایل بکاپ استفاده می‌شود. به‌طور پیش‌فرض رمز اصلی به‌کار می‌رود.',
     downloadEncrypted: 'دانلود بکاپ رمزنگاری‌شده',
     downloadPlain: 'دانلود JSON ساده',
+    downloadProvidersOnly: 'فقط پرووایدرها (بدون کلید)',
     importEncrypted: 'فایل بکاپ رمزنگاری‌شده، رمز آن را وارد کنید:',
 
     toastLoaded: 'مدیریت کلید API بارگذاری شد',
@@ -382,6 +387,7 @@ export const TRANSLATIONS = {
     toastCopyFailed: 'کپی ناموفق بود',
     toastSettingsSaved: 'تنظیمات ذخیره شد',
     toastBackupDownloaded: 'بکاپ دانلود شد',
+    toastProvidersExported: 'بکاپ پرووایدرها دانلود شد (بدون کلید)',
     toastEncryptedBackup: 'بکاپ رمزنگاری‌شده دانلود شد',
     toastImported: 'داده‌ها با موفقیت بازیابی شد',
     toastInvalidFile: 'فرمت فایل نامعتبر است',

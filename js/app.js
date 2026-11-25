@@ -73,6 +73,7 @@ export class App {
     document.getElementById('langSelect')?.addEventListener('change', (e) => this.changeLanguage(e.target.value));
     document.getElementById('langSelectSettings')?.addEventListener('change', (e) => this.changeLanguage(e.target.value));
     document.getElementById('btnTrash')?.addEventListener('click', () => this.openTrash());
+    document.getElementById('exportProvidersOnly')?.addEventListener('change', () => this.refreshExportTextarea());
     document.getElementById('sortSelect')?.addEventListener('change', (e) => {
       this.listSort = e.target.value;
       this.loadProviders();
@@ -173,6 +174,9 @@ export class App {
           break;
         case 'download-plain-backup':
           this.downloadPlainBackup();
+          break;
+        case 'download-providers-only':
+          this.downloadProvidersOnly();
           break;
         case 'empty-trash':
           this.emptyTrash();
@@ -927,10 +931,42 @@ export class App {
     this.showToast(this.t('toastProviderAdded'));
   }
 
-  async exportData() {
-    const data = await this.storage.exportData();
+  async buildProvidersOnlyExport() {
+    const activeProviders = await this.providerManager.getAllProviders(false);
+    const providers = activeProviders.map(p => ({
+      id: p.id,
+      name: p.name,
+      base_url: p.base_url,
+      models: Array.isArray(p.models) ? [...p.models] : [],
+      website: p.website || null,
+      logo: p.logo || null,
+      category: p.category || 'other',
+      is_custom: !!p.is_custom,
+      pinned: !!p.pinned
+    }));
+    return {
+      version: this.storage.version,
+      type: 'providers-only',
+      timestamp: new Date().toISOString(),
+      providers,
+      api_keys: [],
+      settings: {}
+    };
+  }
+
+  async refreshExportTextarea() {
     const modal = document.getElementById('modalExport');
+    const providersOnly = document.getElementById('exportProvidersOnly')?.checked;
+    const data = providersOnly
+      ? await this.buildProvidersOnlyExport()
+      : await this.storage.exportData();
     modal.querySelector('textarea').value = JSON.stringify(data, null, 2);
+  }
+
+  async exportData() {
+    const checkbox = document.getElementById('exportProvidersOnly');
+    if (checkbox) checkbox.checked = false;
+    await this.refreshExportTextarea();
     this.openModal('modalExport');
   }
 
@@ -987,12 +1023,18 @@ export class App {
     this.showToast(this.t('toastBackupDownloaded'));
   }
 
-  saveBackupFile(content, mime, ext) {
+  async downloadProvidersOnly() {
+    const data = await this.buildProvidersOnlyExport();
+    this.saveBackupFile(JSON.stringify(data, null, 2), 'application/json', '.json', 'api-providers-public');
+    this.showToast(this.t('toastProvidersExported'));
+  }
+
+  saveBackupFile(content, mime, ext, prefix = 'api-keys-backup') {
     const blob = new Blob([content], { type: mime });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `api-keys-backup-${new Date().toISOString().split('T')[0]}${ext}`;
+    a.download = `${prefix}-${new Date().toISOString().split('T')[0]}${ext}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

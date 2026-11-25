@@ -236,6 +236,12 @@
         <button class="modal-close" data-action="close-modal" data-modal="modalExport" data-i18n-title="close" title="Close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
       </div>
       <div class="form-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="exportProvidersOnly" />
+          <span data-i18n="exportProvidersOnly">Export active providers only (exclude API keys &amp; settings)</span>
+        </label>
+      </div>
+      <div class="form-group">
         <label data-i18n="exportedJson">Exported JSON</label>
         <textarea readonly rows="10" id="exportTextarea"></textarea>
       </div>
@@ -271,6 +277,7 @@
         <p class="form-hint" data-i18n="backupPasswordHint">Used to encrypt the backup file.</p>
         <div class="form-actions backup-actions">
           <button type="button" class="btn btn-secondary" data-action="close-modal" data-modal="modalBackup" data-i18n="cancel">Cancel</button>
+          <button type="button" class="btn btn-secondary" data-action="download-providers-only" data-i18n="downloadProvidersOnly">Providers only (no keys)</button>
           <button type="button" class="btn btn-secondary" data-action="download-plain-backup" data-i18n="downloadPlain">Plain JSON</button>
           <button type="submit" class="btn btn-primary" data-i18n="downloadEncrypted">Download encrypted</button>
         </div>

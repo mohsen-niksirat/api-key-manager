@@ -47,5 +47,42 @@ export const tests = {
     assert(!text.startsWith(BACKUP_PREFIX), 'plain JSON must not collide with encrypted prefix');
     const parsed = JSON.parse(text);
     assert(Array.isArray(parsed.providers), 'plain backup must parse directly');
+  },
+
+  async 'providers-only backup exports active public metadata without keys or settings'() {
+    const { App } = await import('../js/app.js');
+    const { ProviderManager } = await import('../js/providers.js');
+    const storage = createStorageStub();
+    await storage.addProvider({
+      id: 'openai',
+      name: 'OpenAI',
+      base_url: 'https://api.openai.com/v1',
+      models: ['gpt-4o', 'gpt-4o-mini'],
+      website: 'https://platform.openai.com',
+      category: 'OpenAI',
+      pinned: true
+    });
+    await storage.addProvider({
+      id: 'trashed',
+      name: 'Trashed',
+      base_url: 'https://trashed.test',
+      deleted: true
+    });
+    await storage.addAPIKey({ provider_id: 'openai', name: 'Prod', key: 'sk-super-secret-key' });
+    await storage.saveSetting('masterVerifier', { salt: 'x', hash: 'y' });
+
+    const app = new App();
+    app.storage = storage;
+    app.providerManager = new ProviderManager(storage);
+
+    const payload = await app.buildProvidersOnlyExport();
+    assertEqual(payload.type, 'providers-only');
+    assertEqual(payload.providers.length, 1, 'only active providers included');
+    assertEqual(payload.providers[0].id, 'openai');
+    assertEqual(payload.providers[0].base_url, 'https://api.openai.com/v1');
+    assertEqual(payload.providers[0].models.length, 2);
+    assertEqual(payload.api_keys.length, 0, 'must not export any API keys');
+    assertEqual(Object.keys(payload.settings).length, 0, 'must not export settings or verifier');
+    assert(!JSON.stringify(payload).includes('sk-super-secret-key'), 'secret key must never appear');
   }
 };
