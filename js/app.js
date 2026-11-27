@@ -10,7 +10,7 @@ import {
   verifyPassword
 } from './crypto.js';
 import { I18n } from './i18n.js';
-import { testKey, testAllKeys, fetchModels } from './keytester.js';
+import { testKey, testAllKeys, fetchModels, parseModelsResponse } from './keytester.js';
 
 const BACKUP_PREFIX = 'AKM-ENCRYPTED-BACKUP:v1:';
 
@@ -75,6 +75,24 @@ export class App {
     document.getElementById('langSelectSettings')?.addEventListener('change', (e) => this.changeLanguage(e.target.value));
     document.getElementById('btnTrash')?.addEventListener('click', () => this.openTrash());
     document.getElementById('exportProvidersOnly')?.addEventListener('change', () => this.refreshExportTextarea());
+
+    // Auto-extract model IDs when pasting a /models JSON response into a models input
+    document.addEventListener('paste', (e) => {
+      const target = e.target;
+      if (!(target instanceof HTMLInputElement) || target.name !== 'models') return;
+      const text = (e.clipboardData || window.clipboardData)?.getData('text')?.trim();
+      if (!text || (text[0] !== '{' && text[0] !== '[')) return;
+      try {
+        const models = parseModelsResponse(JSON.parse(text));
+        if (models.length > 0) {
+          e.preventDefault();
+          target.value = models.join(', ');
+          this.showToast(this.t('toastModelsFetched', { n: models.length }));
+        }
+      } catch {
+        // Not valid JSON; let normal paste proceed
+      }
+    });
     document.getElementById('sortSelect')?.addEventListener('change', (e) => {
       this.listSort = e.target.value;
       this.loadProviders();
