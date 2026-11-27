@@ -142,6 +142,74 @@ export async function testKey(provider, apiKey, { model, timeoutMs = DEFAULT_TIM
 }
 
 /**
+ * Build a GET /models request for a provider base_url and optional API key.
+ */
+export function buildModelsRequest(baseUrl, apiKey = '') {
+  const cleanBase = (baseUrl || '').replace(/\/+$/, '');
+  const style = authStyleFor({ base_url: cleanBase });
+  const key = (apiKey || '').trim();
+
+  if (style === 'google') {
+    const url = key
+      ? `${cleanBase}/models?key=${encodeURIComponent(key)}`
+      : `${cleanBase}/models`;
+    return { url, options: { method: 'GET' } };
+  }
+
+  if (style === 'anthropic') {
+    const headers = { 'anthropic-version': '2023-06-01' };
+    if (key) headers['x-api-key'] = key;
+    const url = cleanBase.endsWith('/v1') ? `${cleanBase}/models` : `${cleanBase}/v1/models`;
+    return { url, options: { method: 'GET', headers } };
+  }
+
+  const headers = {};
+  if (key) headers['Authorization'] = 'Bearer ' + key;
+  return { url: `${cleanBase}/models`, options: { method: 'GET', headers } };
+}
+
+/**
+ * Extract model IDs from OpenAI, Anthropic, Google, or generic JSON responses.
+ */
+export function parseModelsResponse(payload) {
+  if (!payload) return [];
+  const rawList = Array.isArray(payload)
+    ? payload
+    : (Array.isArray(payload.data)
+      ? payload.data
+      : (Array.isArray(payload.models) ? payload.models : []));
+
+  const ids = rawList.map(item => {
+    if (typeof item === 'string') return item.trim();
+    if (item && typeof item === 'object') {
+      const id = item.id || item.name || item.model || '';
+      return String(id).replace(/^models\//, '').trim();
+    }
+    return '';
+  }).filter(Boolean);
+
+  return [...new Set(ids)];
+}
+
+/**
+ * Fetch available models from a provider's /models endpoint.
+ */
+export async function fetchModels(baseUrl, apiKey = '', { timeoutMs = DEFAULT_TIMEOUT } = {}) {
+  const { url, options } = buildModelsRequest(baseUrl, apiKey);
+  const { options: opts, cancel } = withTimeout(options, timeoutMs);
+  try {
+    const response = await fetch(url, opts);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const json = await response.json();
+    return parseModelsResponse(json);
+  } finally {
+    cancel();
+  }
+}
+
+/**
  * Test all keys of a provider (or a supplied list) with limited concurrency.
  * onProgress(done, total, result) is called after each test.
  */

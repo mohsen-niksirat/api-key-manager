@@ -1,4 +1,4 @@
-const CACHE_NAME = 'api-key-manager-v12';
+const CACHE_NAME = 'api-key-manager-v13';
 
 // Relative paths so the app works under a subpath (e.g. GitHub Pages project sites)
 const STATIC_ASSETS = [

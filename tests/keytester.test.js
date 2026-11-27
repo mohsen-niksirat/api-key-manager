@@ -1,6 +1,6 @@
 // tests/keytester.test.js - Key tester logic (no network calls)
 
-import { authStyleFor, buildTestRequest, interpretResponse } from '../js/keytester.js';
+import { authStyleFor, buildTestRequest, interpretResponse, buildModelsRequest, parseModelsResponse } from '../js/keytester.js';
 import { assertEqual, assert, assertIncludes } from './helpers.js';
 
 const openaiProvider = { id: 'openai', base_url: 'https://api.openai.com/v1' };
@@ -82,5 +82,29 @@ export const tests = {
     const r = await interpretResponse({ ok: false, status: 404, text: async () => '' });
     assertEqual(r.ok, false);
     assertIncludes(r.detail, 'not found');
+  },
+
+  'buildModelsRequest builds provider-aware /models endpoints'() {
+    const oa = buildModelsRequest('https://api.openai.com/v1/', 'sk-123');
+    assertEqual(oa.url, 'https://api.openai.com/v1/models');
+    assertEqual(oa.options.headers.Authorization, 'Bearer sk-123');
+
+    const ant = buildModelsRequest('https://api.anthropic.com', 'sk-ant');
+    assertEqual(ant.url, 'https://api.anthropic.com/v1/models');
+    assertEqual(ant.options.headers['x-api-key'], 'sk-ant');
+
+    const goo = buildModelsRequest('https://generativelanguage.googleapis.com/v1beta', 'AIza123');
+    assertEqual(goo.url, 'https://generativelanguage.googleapis.com/v1beta/models?key=AIza123');
+  },
+
+  'parseModelsResponse handles OpenAI, Google, and string arrays'() {
+    const oa = parseModelsResponse({ data: [{ id: 'gpt-4o' }, { id: 'gpt-4o-mini' }, { id: 'gpt-4o' }] });
+    assertEqual(oa.join(','), 'gpt-4o,gpt-4o-mini');
+
+    const goo = parseModelsResponse({ models: [{ name: 'models/gemini-1.5-pro' }, { name: 'models/gemini-1.5-flash' }] });
+    assertEqual(goo.join(','), 'gemini-1.5-pro,gemini-1.5-flash');
+
+    const arr = parseModelsResponse(['m1', 'm2']);
+    assertEqual(arr.join(','), 'm1,m2');
   }
 };

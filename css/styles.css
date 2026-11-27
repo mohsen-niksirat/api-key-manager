@@ -229,6 +229,10 @@ svg.icon { width: 18px; height: 18px; flex-shrink: 0; display: block; }
 .btn-ghost:hover { color: var(--danger-text); background: var(--surface-3); }
 .btn-sm { padding: 5px 10px; font-size: 12.5px; gap: 5px; }
 .btn-sm svg.icon { width: 13px; height: 13px; }
+.btn-xs { padding: 3px 9px; font-size: 11.5px; gap: 4px; }
+.label-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.label-row label { margin-bottom: 0; }
+.form-row-2 { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; }
 
 /* ---------- Main layout ---------- */
 .main-content { max-width: 1280px; margin: 0 auto; padding: 28px 24px 8px; }

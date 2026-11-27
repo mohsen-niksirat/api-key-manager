@@ -10,7 +10,7 @@ import {
   verifyPassword
 } from './crypto.js';
 import { I18n } from './i18n.js';
-import { testKey, testAllKeys } from './keytester.js';
+import { testKey, testAllKeys, fetchModels } from './keytester.js';
 
 const BACKUP_PREFIX = 'AKM-ENCRYPTED-BACKUP:v1:';
 
@@ -189,6 +189,9 @@ export class App {
           break;
         case 'toggle-encrypt-settings':
           this.toggleEncryptFromSettings(actionEl);
+          break;
+        case 'fetch-models':
+          this.fetchModelsForForm(modal, actionEl);
           break;
       }
     });
@@ -907,6 +910,55 @@ export class App {
     });
   }
 
+  async fetchModelsForForm(modalId, btn) {
+    const modal = document.getElementById(modalId);
+    const form = modal?.querySelector('form');
+    if (!form) return;
+
+    const baseUrl = form.querySelector('input[name="base_url"]')?.value.trim() || '';
+    if (!baseUrl) {
+      this.showToast(this.t('toastEnterBaseUrl'), 'error');
+      return;
+    }
+
+    let apiKey = form.querySelector('input[name="initial_key"]')?.value.trim() || '';
+    if (!apiKey && modalId === 'modalEditProvider' && form.dataset.providerId) {
+      const keys = await this.providerManager.getAPIKeys(form.dataset.providerId);
+      if (keys.length > 0) {
+        const plain = await this.resolveKeyPlaintext(keys[0]);
+        if (plain === null) return; // locked vault modal opened
+        apiKey = plain;
+      }
+    }
+
+    const origText = btn?.textContent;
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = this.t('fetchingModels');
+    }
+
+    try {
+      const models = await fetchModels(baseUrl, apiKey);
+      if (!models.length) {
+        this.showToast(this.t('toastNoModelsFound'), 'error');
+        return;
+      }
+      const modelsInput = form.querySelector('input[name="models"]');
+      if (modelsInput) {
+        modelsInput.value = models.join(', ');
+      }
+      this.showToast(this.t('toastModelsFetched', { n: models.length }));
+    } catch (err) {
+      console.warn('Fetch models failed:', err);
+      this.showToast(this.t('toastFetchModelsFailed'), 'error');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = origText || this.t('fetchModels');
+      }
+    }
+  }
+
   async saveProvider() {
     const modal = document.getElementById('modalAddProvider');
     const form = modal.querySelector('form');
@@ -916,13 +968,20 @@ export class App {
       .split(',').map(s => s.trim()).filter(Boolean);
     const website = form.querySelector('input[name="website"]').value.trim();
     const logo = form.querySelector('input[name="logo"]').value.trim();
+    const initialKey = form.querySelector('input[name="initial_key"]')?.value.trim() || '';
+    const initialKeyName = form.querySelector('input[name="initial_key_name"]')?.value.trim() || '';
 
     if (!name || !baseUrl) {
       this.showToast(this.t('toastFillRequired'), 'error');
       return;
     }
 
-    await this.providerManager.addProvider({
+    if (initialKey && this.encryptEnabled && !this.masterPassword) {
+      await this.openEncryptModal();
+      return;
+    }
+
+    const created = await this.providerManager.addProvider({
       name,
       base_url: baseUrl,
       models,
@@ -931,6 +990,15 @@ export class App {
       is_custom: true,
       category: 'custom'
     });
+
+    if (initialKey && created?.id) {
+      await this.providerManager.addAPIKey(created.id, {
+        name: initialKeyName || this.t('unnamedKey'),
+        key: initialKey,
+        notes: '',
+        expiry: null
+      });
+    }
 
     modal.classList.remove('open');
     form.reset();

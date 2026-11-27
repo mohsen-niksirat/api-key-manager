@@ -176,7 +176,17 @@
           <input type="url" name="base_url" data-i18n-placeholder="baseUrlPh" placeholder="https://api.example.com/v1" required />
         </div>
         <div class="form-group">
-          <label data-i18n="modelsLabel">Models (comma-separated)</label>
+          <label data-i18n="initialKeyLabel">Initial API Key (optional)</label>
+          <div class="form-row-2">
+            <input type="text" name="initial_key_name" data-i18n-placeholder="initialKeyNamePh" placeholder="Key name (e.g. Default)" />
+            <input type="password" name="initial_key" data-i18n-placeholder="apiKeyPh" placeholder="sk-..." autocomplete="off" />
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="label-row">
+            <label data-i18n="modelsLabel">Models (comma-separated)</label>
+            <button type="button" class="btn btn-secondary btn-xs" data-action="fetch-models" data-modal="modalAddProvider" data-i18n="fetchModels">Fetch models</button>
+          </div>
           <input type="text" name="models" data-i18n-placeholder="modelsPh" placeholder="gpt-4, gpt-3.5-turbo, ..." />
         </div>
         <div class="form-group">
@@ -326,7 +336,10 @@
           <input type="url" name="base_url" required />
         </div>
         <div class="form-group">
-          <label data-i18n="modelsLabel">Models (comma-separated)</label>
+          <div class="label-row">
+            <label data-i18n="modelsLabel">Models (comma-separated)</label>
+            <button type="button" class="btn btn-secondary btn-xs" data-action="fetch-models" data-modal="modalEditProvider" data-i18n="fetchModels">Fetch models</button>
+          </div>
           <input type="text" name="models" />
         </div>
         <div class="form-group">
